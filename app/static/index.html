@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>gizstrom</title>
+    <link rel="icon" type="image/png" href="favicon.png">
+    <script src="https://code.jquery.com/jquery-4.0.0.slim.min.js"
+        integrity="sha256-8DGpv13HIm+5iDNWw1XqxgFB4mj+yOKFNb+tHBZOowc=" crossorigin="anonymous"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        border: "hsl(240 6% 90%)",
+                        background: "hsl(0 0% 100%)",
+                        foreground: "hsl(240 10% 4%)",
+                        muted: "hsl(240 4% 45%)",
+                        primary: {
+                            DEFAULT: "hsl(240 6% 10%)",
+                            foreground: "hsl(0 0% 98%)",
+                        },
+                        card: "hsl(0 0% 100%)",
+                    },
+                    borderRadius: {
+                        lg: "0.5rem",
+                        md: "calc(0.5rem - 2px)",
+                        sm: "calc(0.5rem - 4px)",
+                    },
+                }
+            }
+        }
+
+        const measurementData = [
+            {date: "2026-03-22", kwh: 12.5},
+            {date: "2026-03-23", kwh: 15.2},
+            {date: "2026-03-24", kwh: 9.8},
+            {date: "2026-03-25", kwh: 18.4},
+            {date: "2026-03-26", kwh: 22.1},
+            {date: "2026-03-27", kwh: 14.7},
+            {date: "2026-03-28", kwh: 19.3}
+        ];
+
+        const predictedData = [
+            {date: "2026-03-29", kwh: 21.2},
+            {date: "2026-03-30", kwh: 18.5},
+            {date: "2026-03-31", kwh: 24.0},
+            {date: "2026-04-01", kwh: 22.8}
+        ];
+
+        $(() => {
+            const ctx = document.getElementById('energyChart').getContext('2d');
+            const labels = [...measurementData.map(d => d.date), ...predictedData.map(d => d.date)];
+
+            new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [
+                        {
+                            label: 'Past Generation',
+                            data: measurementData.map(d => d.kwh),
+                            borderColor: 'hsl(240 6% 10%)',
+                            backgroundColor: 'rgba(24, 24, 27, 0.05)',
+                            borderWidth: 2,
+                            tension: 0.3,
+                            fill: true
+                        },
+                        {
+                            label: 'Predicted Generation',
+                            data: [
+                                ...Array(measurementData.length - 1).fill(null),
+                                measurementData[measurementData.length - 1].kwh,
+                                ...predictedData.map(d => d.kwh)
+                            ],
+                            borderColor: '#22c55e',
+                            backgroundColor: 'rgba(34, 197, 94, 0.05)',
+                            borderWidth: 2,
+                            borderDash: [5, 5],
+                            tension: 0.3,
+                            fill: true
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {legend: {display: true, labels: {usePointStyle: true, pointStyle: "line"}}},
+                    scales: {
+                        y: {beginAtZero: true, grid: {color: 'hsl(240 5.9% 90%)'}},
+                        x: {grid: {display: false}}
+                    }
+                }
+            });
+
+            const $modal = $("#uploadModal");
+            const $fileInput = $("#csvInput");
+            const $dropZone = $("#dropZone");
+            const $fileInfo = $("#fileInfo");
+            const $fileName = $("#fileName");
+
+            $("#openModal").click(() => $modal.removeClass("hidden").addClass("flex"));
+
+            const closeModal = () => {
+                $modal.addClass("hidden").removeClass("flex");
+                resetUpload();
+            };
+
+            $("#closeModal, #uploadModal").click((e) => {
+                if (e.target.id === "uploadModal" || e.target.id === "closeModal") closeModal();
+            });
+
+            // Prevent event bubbling on the modal content itself
+            $(".modal-content").click((e) => e.stopPropagation());
+
+            // Click Dropzone to trigger file input
+            $dropZone.on('click', function (e) {
+                $fileInput.trigger('click');
+            });
+
+            // Stop click propagation on input to prevent loop
+            $fileInput.on('click', function (e) {
+                e.stopPropagation();
+            });
+
+            // Handle Drag & Drop events
+            $dropZone.on("dragover dragenter", function (e) {
+                e.preventDefault();
+                e.stopPropagation();
+                $(this).addClass("bg-slate-100 border-primary");
+            });
+
+            $dropZone.on("dragleave drop", function (e) {
+                e.preventDefault();
+                e.stopPropagation();
+                $(this).removeClass("bg-slate-100 border-primary");
+            });
+
+            $dropZone.on("drop", function (e) {
+                const files = e.originalEvent.dataTransfer.files;
+                if (files.length) {
+                    $fileInput[0].files = files;
+                    handleFileUI(files[0]);
+                }
+            });
+
+            $fileInput.on("change", function () {
+                if (this.files && this.files[0]) {
+                    handleFileUI(this.files[0]);
+                }
+            });
+
+            function handleFileUI(file) {
+                $fileName.text(file.name);
+                $dropZone.addClass("hidden");
+                $fileInfo.removeClass("hidden").addClass("flex");
+            }
+
+            $("#removeFile").on('click', function (e) {
+                e.preventDefault();
+                e.stopPropagation();
+                resetUpload();
+            });
+
+            function resetUpload() {
+                $fileInput.val("");
+                $dropZone.removeClass("hidden");
+                $fileInfo.addClass("hidden").removeClass("flex");
+            }
+
+            $("#processBtn").click(() => {
+                const file = $fileInput[0].files[0];
+                if (file) {
+                    console.log("File submitted for classifier training:", file.name);
+                    closeModal();
+                } else {
+                    alert("Please select a file first.");
+                }
+            });
+        });
+    </script>
+</head>
+
+<body class="bg-slate-50 min-h-screen flex flex-col items-center p-8 text-foreground">
+
+    <div class="w-full max-w-2xl space-y-6">
+        <header class="flex justify-between items-center">
+            <div>
+                <h1 class="text-3xl font-bold tracking-tight">gizstrom</h1>
+                <p class="text-muted text-sm">Monitor your daily energy output</p>
+            </div>
+            <button id="openModal"
+                class="inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors bg-primary text-primary-foreground shadow hover:bg-primary/90 h-9 px-4 py-2">
+                Upload Measurements
+            </button>
+        </header>
+
+        <div class="rounded-xl border bg-card shadow-sm p-6">
+            <div class="mb-4">
+                <h2 class="text-lg font-semibold">Weekly Generation & Forecast</h2>
+                <p class="text-xs text-muted">Comparison of recorded and predicted output</p>
+            </div>
+            <div class="h-64 w-full">
+                <canvas id="energyChart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <div id="uploadModal" class="fixed inset-0 bg-black/50 hidden items-center justify-center z-50 p-4">
+        <div class="modal-content bg-white rounded-xl shadow-lg max-w-md w-full p-6 space-y-4">
+            <div class="flex justify-between items-start">
+                <h3 class="text-lg font-bold text-primary">Upload Measurements</h3>
+                <button id="closeModal" class="text-muted hover:text-primary text-xl">&times;</button>
+            </div>
+            <p class="text-sm text-muted">Upload your CSV file (date, kwh) to train the prediction classifier.</p>
+
+            <div id="dropZone"
+                class="border-2 border-dashed border-border rounded-lg p-8 flex flex-col items-center justify-center space-y-2 hover:bg-slate-50 transition-colors cursor-pointer relative">
+                <svg xmlns="http://www.w3.org/2000/svg" class="w-8 h-8 text-muted" fill="none" viewBox="0 0 24 24"
+                    stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                </svg>
+                <span class="text-sm font-medium text-center">Click or drag CSV file here</span>
+                <input id="csvInput" type="file" class="hidden" accept=".csv">
+            </div>
+
+            <div id="fileInfo" class="hidden items-center justify-between bg-slate-100 p-3 rounded-md border">
+                <div class="flex items-center space-x-3 truncate">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-primary shrink-0" fill="none"
+                        viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                    <span id="fileName" class="text-sm font-medium truncate"></span>
+                </div>
+                <button id="removeFile" class="text-red-500 hover:text-red-700 font-bold px-2">✕</button>
+            </div>
+
+            <div class="flex justify-end pt-2">
+                <button id="processBtn"
+                    class="bg-primary text-primary-foreground px-4 py-2 rounded-md text-sm font-medium w-full">Process
+                    File</button>
+            </div>
+        </div>
+    </div>
+
+</body>
+
+</html>
