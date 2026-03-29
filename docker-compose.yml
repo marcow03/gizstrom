@@ -2,6 +2,6 @@ include:
   - infra/networks.yml
   - infra/rustfs/docker-compose.yml
   - infra/mlflow/docker-compose.yml
-  # - infra/feast/docker-compose.yml
+  - infra/feast/docker-compose.yml
   # - infra/compute-instance/docker-compose.yml
   # - infra/airflow/docker-compose.yml

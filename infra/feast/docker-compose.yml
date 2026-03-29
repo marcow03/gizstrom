@@ -1,0 +1,32 @@
+services:
+  feature-server:
+    image: marcow03/feast-custom
+    build: .
+    ports:
+      - "6566:6566"
+    volumes:
+      - ./gizstrom/feature_repo:/opt/feast/feature_repo
+      - ../../data/feast/data:/opt/feast/data
+    networks:
+      - production
+      - development
+      - ingress
+    working_dir: /opt/feast/feature_repo
+    command: sh -c "feast apply && feast serve --host 0.0.0.0 --port 6566"
+    environment:
+      FEAST_USAGE: False
+
+  feast-ui:
+    image: marcow03/feast-custom
+    build: .
+    ports:
+      - "8888:8888"
+    volumes:
+      - ./gizstrom/feature_repo:/opt/feast/feature_repo
+    networks:
+      - production
+      - development
+    working_dir: /opt/feast/feature_repo
+    command: "feast ui --host 0.0.0.0 --port 8088"
+    environment:
+      - FEAST_CORE_URL=feature-server:6566
