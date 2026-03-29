@@ -1,0 +1,77 @@
+services:
+  mlflow:
+    image: ghcr.io/mlflow/mlflow:v3.10.1-full
+    depends_on:
+      rustfs:
+        condition: service_healthy
+      create-bucket:
+        condition: service_completed_successfully
+    environment:
+      MLFLOW_S3_ENDPOINT_URL: ${S3_ENDPOINT_URL}
+      MLFLOW_ARTIFACTS_DESTINATION: ${MLFLOW_ARTIFACTS_DESTINATION}
+      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID}
+      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY}
+      MLFLOW_S3_IGNORE_TLS: "true"
+      MLFLOW_HOST: ${MLFLOW_HOST}
+      MLFLOW_PORT: ${MLFLOW_PORT}
+      MLFLOW_DISABLE_TELEMETRY: true
+      DO_NOT_TRACK: true
+    networks:
+      - production
+      - development
+    volumes:
+      - ../../data/mlflow/metadata:/metadata
+    command:
+      - /bin/bash
+      - -c
+      - |
+        if ! (pip show psycopg2-binary > /dev/null 2>&1 && pip show boto3 > /dev/null 2>&1); then
+          pip install --no-cache-dir psycopg2-binary boto3
+        fi
+        mlflow server \
+          --backend-store-uri "${MLFLOW_BACKEND_STORE_URI}" \
+          --artifacts-destination "${MLFLOW_ARTIFACTS_DESTINATION}" \
+          --serve-artifacts \
+          --host "${MLFLOW_HOST}" \
+          --port "${MLFLOW_PORT}" \
+          --disable-security-middleware
+    ports:
+      - "${MLFLOW_PORT}:${MLFLOW_PORT}"
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import urllib.request; urllib.request.urlopen('http://localhost:${MLFLOW_PORT}/health')",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+
+  create-bucket:
+    image: amazon/aws-cli:2.33.25
+    container_name: mlflow-create-bucket
+    depends_on:
+      rustfs:
+        condition: service_healthy
+    entrypoint: >
+      /bin/sh -c "
+        set -e;
+        echo 'Waiting for S3 gateway getting ready...';
+        if aws --endpoint-url=${S3_ENDPOINT_URL} s3api head-bucket --bucket ${MLFLOW_S3_BUCKET} 2>/dev/null; then
+          echo 'Bucket ${MLFLOW_S3_BUCKET} already exists. Skipping creation.';
+        else
+          echo 'Creating bucket ${MLFLOW_S3_BUCKET}...';
+          aws --endpoint-url=${S3_ENDPOINT_URL} s3api create-bucket --bucket ${MLFLOW_S3_BUCKET};
+        fi
+      "
+    environment:
+      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID}
+      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY}
+      AWS_S3_ADDRESSING_STYLE: path
+      S3_ENDPOINT_URL: ${S3_ENDPOINT_URL}
+      MLFLOW_S3_BUCKET: ${MLFLOW_S3_BUCKET}
+    networks:
+      - production
+    restart: "no"
