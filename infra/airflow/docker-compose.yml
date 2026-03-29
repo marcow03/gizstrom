@@ -1,0 +1,22 @@
+services:
+  airflow:
+    image: apache/airflow:slim-3.2.0b2-python3.14
+    user: "50000:0"
+    working_dir: /opt/airflow
+    ports:
+      - "8793:8793"
+      - "8080:8080"
+    volumes:
+      - ./dags:/opt/airflow/dags
+      - ./plugins:/opt/airflow/plugins
+      # SQLite database and logs stored in your local data path
+      - ../../data/airflow/data:/opt/airflow/data
+      - ../../data/airflow/data/logs:/opt/airflow/logs
+      - ../../data/airflow/data/config:/opt/airflow/config
+    # environment:
+      # _PIP_ADDITIONAL_REQUIREMENTS: 'feast'
+    networks:
+      - production
+      - development
+      - ingress
+    command: standalone
