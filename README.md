@@ -1,2 +1,1 @@
 # gizstrom
-MLOps project @ HSLU
