@@ -4,8 +4,12 @@ services:
     depends_on:
       rustfs:
         condition: service_healthy
-      create-bucket:
+      create-mlflow-bucket:
         condition: service_completed_successfully
+    ports:
+      - "${MLFLOW_PORT}:${MLFLOW_PORT}"
+    volumes:
+      - ../../data/mlflow/metadata:/metadata
     environment:
       MLFLOW_S3_ENDPOINT_URL: ${S3_ENDPOINT_URL}
       MLFLOW_ARTIFACTS_DESTINATION: ${MLFLOW_ARTIFACTS_DESTINATION}
@@ -19,8 +23,11 @@ services:
     networks:
       - production
       - development
-    volumes:
-      - ../../data/mlflow/metadata:/metadata
+    healthcheck:
+      test: [ "CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:${MLFLOW_PORT}/health')" ]
+      interval: 10s
+      timeout: 5s
+      retries: 30
     command:
       - /bin/bash
       - -c
@@ -35,26 +42,21 @@ services:
           --host "${MLFLOW_HOST}" \
           --port "${MLFLOW_PORT}" \
           --disable-security-middleware
-    ports:
-      - "${MLFLOW_PORT}:${MLFLOW_PORT}"
-    healthcheck:
-      test:
-        [
-          "CMD",
-          "python",
-          "-c",
-          "import urllib.request; urllib.request.urlopen('http://localhost:${MLFLOW_PORT}/health')",
-        ]
-      interval: 10s
-      timeout: 5s
-      retries: 30
 
-  create-bucket:
+  create-mlflow-bucket:
     image: amazon/aws-cli:2.33.25
-    container_name: mlflow-create-bucket
+    restart: "no"
     depends_on:
       rustfs:
         condition: service_healthy
+    environment:
+      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID}
+      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY}
+      AWS_S3_ADDRESSING_STYLE: path
+      S3_ENDPOINT_URL: ${S3_ENDPOINT_URL}
+      MLFLOW_S3_BUCKET: ${MLFLOW_S3_BUCKET}
+    networks:
+      - production
     entrypoint: >
       /bin/sh -c "
         set -e;
@@ -66,12 +68,3 @@ services:
           aws --endpoint-url=${S3_ENDPOINT_URL} s3api create-bucket --bucket ${MLFLOW_S3_BUCKET};
         fi
       "
-    environment:
-      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID}
-      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY}
-      AWS_S3_ADDRESSING_STYLE: path
-      S3_ENDPOINT_URL: ${S3_ENDPOINT_URL}
-      MLFLOW_S3_BUCKET: ${MLFLOW_S3_BUCKET}
-    networks:
-      - production
-    restart: "no"

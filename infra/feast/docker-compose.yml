@@ -1,32 +1,65 @@
 services:
-  feature-server:
-    image: marcow03/feast-custom
-    build: .
-    ports:
-      - "6566:6566"
+  redis:
+    image: redis:7.4-alpine
+    restart: unless-stopped
     volumes:
-      - ./gizstrom/feature_repo:/opt/feast/feature_repo
-      - ../../data/feast/data:/opt/feast/data
+      - ../../data/feast/redis:/data
+    environment:
+      FEAST_REDIS_PASSWORD: ${FEAST_REDIS_PASSWORD}
     networks:
       - production
-      - development
-      - ingress
-    working_dir: /opt/feast/feature_repo
-    command: sh -c "feast apply && feast serve --host 0.0.0.0 --port 6566"
-    environment:
-      FEAST_USAGE: False
+    command: redis-server --save 20 1 --loglevel warning --requirepass ${FEAST_REDIS_PASSWORD}
 
   feast-ui:
     image: marcow03/feast-custom
     build: .
+    restart: unless-stopped
+    depends_on:
+      rustfs:
+        condition: service_healthy
+      redis:
+        condition: service_started
     ports:
-      - "8888:8888"
+      - "8088:8088"
     volumes:
-      - ./gizstrom/feature_repo:/opt/feast/feature_repo
+      - ../../src/pipelines/feature_pipeline/feature_repo:/opt/feast/feature_repo
+    environment:
+      FEAST_REGISTRY_DESTINATION: ${FEAST_REGISTRY_DESTINATION}
+      FEAST_REDIS_PORT: ${FEAST_REDIS_PORT}
+      FEAST_REDIS_HOST: ${FEAST_REDIS_HOST}
+      FEAST_REDIS_PASSWORD: ${FEAST_REDIS_PASSWORD}
+      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID}
+      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY}
+      AWS_S3_ADDRESSING_STYLE: path
+      FEAST_S3_ENDPOINT_URL: ${S3_ENDPOINT_URL}
     networks:
       - production
       - development
-    working_dir: /opt/feast/feature_repo
     command: "feast ui --host 0.0.0.0 --port 8088"
+    working_dir: /opt/feast/feature_repo
+
+  create-feast-bucket:
+    image: amazon/aws-cli:2.33.25
+    restart: "no"
+    depends_on:
+      rustfs:
+        condition: service_healthy
     environment:
-      - FEAST_CORE_URL=feature-server:6566
+      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID}
+      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY}
+      AWS_S3_ADDRESSING_STYLE: path
+      S3_ENDPOINT_URL: ${S3_ENDPOINT_URL}
+      FEAST_S3_BUCKET: ${FEAST_S3_BUCKET}
+    networks:
+      - production
+    entrypoint: >
+      /bin/sh -c "
+        set -e;
+        echo 'Waiting for S3 gateway getting ready...';
+        if aws --endpoint-url=${S3_ENDPOINT_URL} s3api head-bucket --bucket ${FEAST_S3_BUCKET} 2>/dev/null; then
+          echo 'Bucket ${FEAST_S3_BUCKET} already exists. Skipping creation.';
+        else
+          echo 'Creating bucket ${FEAST_S3_BUCKET}...';
+          aws --endpoint-url=${S3_ENDPOINT_URL} s3api create-bucket --bucket ${FEAST_S3_BUCKET};
+        fi
+      "
