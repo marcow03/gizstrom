@@ -7,4 +7,4 @@ WORKDIR /opt/app
 
 RUN uv sync --no-cache
 
-ENTRYPOINT [ "uv", "run", "main.py" ]
+ENTRYPOINT [ "uv", "run", "fastapi", "run", "main.py" ]
