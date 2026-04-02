@@ -175,8 +175,15 @@
             $("#processBtn").click(() => {
                 const file = $fileInput[0].files[0];
                 if (file) {
-                    console.log("File submitted for classifier training:", file.name);
-                    closeModal();
+                    const formData = new FormData();
+                    formData.append("file", file);
+
+                    fetch("/upload/", {
+                        method: "POST",
+                        body: formData
+                    }).then(response => response.json())
+                      .then(() => closeModal())
+                      .catch(() => alert("Failed to upload file."));
                 } else {
                     alert("Please select a file first.");
                 }
