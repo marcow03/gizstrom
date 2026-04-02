@@ -4,7 +4,7 @@ services:
     depends_on:
       rustfs:
         condition: service_healthy
-      create-mlflow-bucket:
+      create-buckets:
         condition: service_completed_successfully
     ports:
       - "${MLFLOW_PORT}:${MLFLOW_PORT}"
@@ -42,29 +42,3 @@ services:
           --host "${MLFLOW_HOST}" \
           --port "${MLFLOW_PORT}" \
           --disable-security-middleware
-
-  create-mlflow-bucket:
-    image: amazon/aws-cli:2.33.25
-    restart: "no"
-    depends_on:
-      rustfs:
-        condition: service_healthy
-    environment:
-      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID}
-      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY}
-      AWS_S3_ADDRESSING_STYLE: path
-      S3_ENDPOINT_URL: ${S3_ENDPOINT_URL}
-      MLFLOW_S3_BUCKET: ${MLFLOW_S3_BUCKET}
-    networks:
-      - production
-    entrypoint: >
-      /bin/sh -c "
-        set -e;
-        echo 'Waiting for S3 gateway getting ready...';
-        if aws --endpoint-url=${S3_ENDPOINT_URL} s3api head-bucket --bucket ${MLFLOW_S3_BUCKET} 2>/dev/null; then
-          echo 'Bucket ${MLFLOW_S3_BUCKET} already exists. Skipping creation.';
-        else
-          echo 'Creating bucket ${MLFLOW_S3_BUCKET}...';
-          aws --endpoint-url=${S3_ENDPOINT_URL} s3api create-bucket --bucket ${MLFLOW_S3_BUCKET};
-        fi
-      "

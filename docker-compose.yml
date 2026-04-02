@@ -3,5 +3,40 @@ include:
   - infra/rustfs/docker-compose.yml
   - infra/mlflow/docker-compose.yml
   - infra/feast/docker-compose.yml
-  # - infra/compute-instance/docker-compose.yml
+  - infra/compute-instance/docker-compose.yml
   - infra/airflow/docker-compose.yml
+
+services:
+  create-buckets:
+    image: amazon/aws-cli:2.33.25
+    restart: "no"
+    depends_on:
+      rustfs:
+        condition: service_healthy
+    environment:
+      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID}
+      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY}
+      AWS_S3_ADDRESSING_STYLE: path
+      S3_ENDPOINT_URL: ${S3_ENDPOINT_URL}
+      BUCKETS_TO_CREATE: ${BUCKETS_TO_CREATE}
+    networks:
+      - production
+    entrypoint:
+      - /bin/sh
+      - -c
+      - |
+        set -e
+        OLD_IFS="$$IFS"
+        IFS=','
+        set -- $$BUCKETS_TO_CREATE
+        IFS="$$OLD_IFS"
+
+        for bucket in "$$@"; do
+          echo "Checking bucket: $$bucket"
+          if aws --endpoint-url="$${S3_ENDPOINT_URL}" s3api head-bucket --bucket "$$bucket" 2>/dev/null; then
+            echo "Bucket $$bucket already exists. Skipping creation."
+          else
+            echo "Creating bucket $$bucket..."
+            aws --endpoint-url="$${S3_ENDPOINT_URL}" s3api create-bucket --bucket "$$bucket"
+          fi
+        done
