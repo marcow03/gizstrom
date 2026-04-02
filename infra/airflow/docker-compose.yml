@@ -1,6 +1,7 @@
 services:
   airflow:
-    image: apache/airflow:slim-3.2.0b2-python3.14
+    image: marcow03/airflow-custom
+    build: .
     ports:
       - "8080:8080"
     volumes:
@@ -8,9 +9,8 @@ services:
       - ../../data/airflow/data:/opt/airflow/data
       - ../../data/airflow/data/logs:/opt/airflow/logs
       - ../../data/airflow/data/config:/opt/airflow/config
+      - ../../data/compute-instance/docker-certs:/certs
     environment:
-      _AIRFLOW_WWW_USER_USERNAME: ${AIRFLOW_USERNAME}
-      _AIRFLOW_WWW_USER_PASSWORD: ${AIRFLOW_PASSWORD}
       AIRFLOW__WEBSERVER__EXPOSE_CONFIG: True
       AIRFLOW__CORE__SIMPLE_AUTH_MANAGER_ALL_ADMINS: True
     networks:

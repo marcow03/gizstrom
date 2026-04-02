@@ -1,0 +1,12 @@
+services:
+  compute-instance:
+    image: docker:29.3.1-dind
+    privileged: true
+    hostname: compute-instance
+    environment:
+      DOCKER_TLS_CERTDIR: "/certs"
+    volumes:
+      - ../../data/compute-instance/docker-certs:/certs
+      - ../../src/pipelines:/pipelines
+    networks:
+      - production
