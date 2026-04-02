@@ -1,2 +1,3 @@
-with open("/pipelines/test.txt", "w") as f:
-    f.write("Hello, World!")
+import os
+
+print(f"TEST value: {os.getenv('TEST')}")

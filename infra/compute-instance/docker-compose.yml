@@ -7,6 +7,5 @@ services:
       DOCKER_TLS_CERTDIR: "/certs"
     volumes:
       - ../../data/compute-instance/docker-certs:/certs
-      - ../../src/pipelines:/pipelines
     networks:
       - production
