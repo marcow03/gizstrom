@@ -2,6 +2,11 @@ services:
   airflow:
     image: ghcr.io/marcow03/gizstrom/airflow
     build: .
+    depends_on:
+      rustfs:
+        condition: service_healthy
+      create-buckets:
+        condition: service_completed_successfully
     ports:
       - "8080:8080"
     volumes:
@@ -14,7 +19,15 @@ services:
     environment:
       AIRFLOW__WEBSERVER__EXPOSE_CONFIG: True
       AIRFLOW__CORE__SIMPLE_AUTH_MANAGER_ALL_ADMINS: True
-      TEST: "test_value"
+      S3_ENDPOINT_URL: ${S3_ENDPOINT_URL}
+      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID}
+      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY}
+      DATA_BUCKET: ${DATA_BUCKET}
+      FEAST_REDIS_HOST: ${FEAST_REDIS_HOST}
+      FEAST_REDIS_PORT: ${FEAST_REDIS_PORT}
+      FEAST_REDIS_PASSWORD: ${FEAST_REDIS_PASSWORD}
+      FEAST_REGISTRY_DESTINATION: ${FEAST_REGISTRY_DESTINATION}
+      MLFLOW_TRACKING_URI: ${MLFLOW_TRACKING_URI}
     networks:
       - production
       - development

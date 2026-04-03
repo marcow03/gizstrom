@@ -1,16 +1,16 @@
-from datetime import datetime
-import os
+# from datetime import datetime
+# import os
 
-from airflow import DAG
-from airflow.providers.docker.operators.docker import DockerOperator
-from docker.types import Mount
+# from airflow import DAG
+# from airflow.providers.docker.operators.docker import DockerOperator
+# from docker.types import Mount
 
-with DAG(
-    "docker_operator_dag",
-    start_date=datetime(2025, 1, 1),
-    schedule="5 * * * *",
-    catchup=False
-) as dag:
+# with DAG(
+#     "docker_operator_dag",
+#     start_date=datetime(2025, 1, 1),
+#     schedule="5 * * * *",
+#     catchup=False
+# ) as dag:
 
     # For running on the compute instance with TLS, use the following configuration.
     # t = DockerOperator(
@@ -30,15 +30,15 @@ with DAG(
     #     }
     # )
 
-    t = DockerOperator(
-        task_id="docker_command_sleep",
-        image="ghcr.io/marcow03/gizstrom/pipelines:latest",
-        api_version="auto",
-        auto_remove="success",
-        command="uv run test.py",
-        network_mode="production",
-        mount_tmp_dir=False,
-        environment={
-            "TEST": os.getenv("TEST", "default_value")
-        }
-    )
+    # t = DockerOperator(
+    #     task_id="docker_command_sleep",
+    #     image="ghcr.io/marcow03/gizstrom/pipelines:latest",
+    #     api_version="auto",
+    #     auto_remove="success",
+    #     command="uv run test.py",
+    #     network_mode="production",
+    #     mount_tmp_dir=False,
+    #     environment={
+    #         "TEST": os.getenv("TEST", "default_value")
+    #     }
+    # )

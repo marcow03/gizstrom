@@ -24,7 +24,7 @@ services:
     ports:
       - "8088:8088"
     volumes:
-      - ../../src/pipelines/feature_pipeline/feature_repo:/opt/feast/feature_repo
+      - ../../src/pipelines/pipelines/feature_repo:/opt/feast/feature_repo
     environment:
       FEAST_REGISTRY_DESTINATION: ${FEAST_REGISTRY_DESTINATION}
       FEAST_REDIS_PORT: ${FEAST_REDIS_PORT}
