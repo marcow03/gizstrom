@@ -24,16 +24,16 @@ services:
     ports:
       - "8088:8088"
     volumes:
-      - ../../src/pipelines/pipelines/feature_repo:/opt/feast/feature_repo
+      - ../../src/pipelines/config/feature_store.yaml:/opt/feast/feature_repo/feature_store.yaml
     environment:
       FEAST_REGISTRY_DESTINATION: ${FEAST_REGISTRY_DESTINATION}
       FEAST_REDIS_PORT: ${FEAST_REDIS_PORT}
       FEAST_REDIS_HOST: ${FEAST_REDIS_HOST}
       FEAST_REDIS_PASSWORD: ${FEAST_REDIS_PASSWORD}
+      FEAST_S3_ENDPOINT_URL: ${S3_ENDPOINT_URL}
       AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID}
       AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY}
       AWS_S3_ADDRESSING_STYLE: path
-      FEAST_S3_ENDPOINT_URL: ${S3_ENDPOINT_URL}
     networks:
       - production
       - development

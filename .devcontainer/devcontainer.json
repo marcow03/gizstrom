@@ -1,0 +1,26 @@
+{
+  "name": "Python",
+  "dockerComposeFile": "./docker-compose.yml",
+  "service": "python",
+  "workspaceFolder": "/workspace",
+  "remoteUser": "vscode",
+  "features": {
+    "ghcr.io/devcontainers-extra/features/uv:1": {}
+  },
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "ms-python.python",
+        "ms-python.vscode-pylance",
+        "charliermarsh.ruff"
+      ]
+    }
+  },
+  "remoteEnv": {
+    "PROJECT_NAME": "Python",
+    "PYTHON_VERSION": "3.14",
+    "UV_INIT_BARE": "false",
+    "INSTALL_IPYKERNEL": "false"
+  },
+  "mounts": []
+}

@@ -1,0 +1,12 @@
+include:
+  - ../docker-compose.yml
+services:
+  python:
+    image: mcr.microsoft.com/devcontainers/base:ubuntu
+    env_file: ../.env
+    volumes:
+      - ..:/workspace:cached
+    command: sleep infinity
+    networks:
+      - development
+      - production

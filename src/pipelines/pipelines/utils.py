@@ -1,11 +1,12 @@
-import os
 import logging
-import requests
+import os
 from abc import ABC
 
-import pandas as pd
 import boto3
+import pandas as pd
+import requests
 from botocore.config import Config
+
 
 def load_config() -> dict:
     return {
@@ -13,17 +14,26 @@ def load_config() -> dict:
         "s3_endpoint_url": os.getenv("S3_ENDPOINT_URL"),
         "aws_access_key_id": os.getenv("AWS_ACCESS_KEY_ID"),
         "aws_secret_access_key": os.getenv("AWS_SECRET_ACCESS_KEY"),
+        "feast_registry_destination": os.getenv("FEAST_REGISTRY_DESTINATION"),
+        "feast_redis_host": os.getenv("FEAST_REDIS_HOST"),
+        "feast_redis_port": os.getenv("FEAST_REDIS_PORT"),
+        "feast_redis_password": os.getenv("FEAST_REDIS_PASSWORD"),
+        "feast_s3_endpoint_url": os.getenv("FEAST_S3_ENDPOINT_URL"),
     }
+
 
 def get_logger(name: str, level: int = logging.INFO) -> logging.Logger:
     logger = logging.getLogger(name)
     logger.setLevel(level)
-    formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+    formatter = logging.Formatter(
+        "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+    )
     handler = logging.StreamHandler()
     handler.setFormatter(formatter)
     logger.addHandler(handler)
 
     return logger
+
 
 class BasePipeline(ABC):
     def __init__(self, config: dict):
@@ -32,6 +42,7 @@ class BasePipeline(ABC):
 
     def run(self):
         raise NotImplementedError("Subclasses must implement the run method")
+
 
 class S3Client:
     def __init__(self, config: dict):
@@ -43,20 +54,23 @@ class S3Client:
             config=Config(s3={"addressing_style": "path"}),
         )
 
-    def save_parquet(self, df: pd.DataFrame, bucket: str, object_key: str):
-        self.s3.put_object(
-            Bucket=bucket,
-            Key=object_key,
-            Body=df.to_parquet(index=False)
-        )
+    def save(self, content: bytes, bucket: str, object_key: str):
+        self.s3.put_object(Bucket=bucket, Key=object_key, Body=content)
 
-    def load_parquet(self, bucket: str, object_key: str) -> pd.DataFrame:
-        response = self.s3.get_object(Bucket=bucket, Key=object_key)
-        return pd.read_parquet(response['Body'])
+    def load_parquet(self, bucket: str, object_key: str) -> pd.DataFrame | None:
+        try:
+            response = self.s3.get_object(Bucket=bucket, Key=object_key)
+            return pd.read_parquet(response["Body"])
+        except Exception:
+            return None
 
-    def load_csv(self, bucket: str, object_key: str) -> pd.DataFrame:
-        response = self.s3.get_object(Bucket=bucket, Key=object_key)
-        return pd.read_csv(response['Body'])
+    def load_csv(self, bucket: str, object_key: str) -> pd.DataFrame | None:
+        try:
+            response = self.s3.get_object(Bucket=bucket, Key=object_key)
+            return pd.read_csv(response["Body"])
+        except Exception:
+            return None
+
 
 class OpenMeteoClient:
     def __init__(self):

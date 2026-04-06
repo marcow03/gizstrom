@@ -2,8 +2,8 @@ import argparse
 
 from pipelines.data_collection_pipeline import DataCollectionPipeline
 from pipelines.feature_pipeline import FeaturePipeline
-from pipelines.training_pipeline import TrainingPipeline
 from pipelines.inference_pipeline import BatchInferencePipeline
+from pipelines.training_pipeline import TrainingPipeline
 from pipelines.utils import get_logger, load_config
 
 

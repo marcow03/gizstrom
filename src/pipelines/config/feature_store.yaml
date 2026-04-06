@@ -1,0 +1,9 @@
+project: gizstrom
+registry: ${FEAST_REGISTRY_DESTINATION}
+provider: local
+online_store:
+    type: redis
+    connection_string: "${FEAST_REDIS_HOST}:${FEAST_REDIS_PORT},password=${FEAST_REDIS_PASSWORD}"
+offline_store:
+  type: file
+entity_key_serialization_version: 3
