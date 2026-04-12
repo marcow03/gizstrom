@@ -5,6 +5,7 @@ requires-python = ">=3.13"
 dependencies = [
     "boto3>=1.42.81",
     "fastapi[standard]>=0.135.2",
+    "fastparquet>=2026.3.0",
     "pandas>=3.0.2",
     "python-multipart>=0.0.22",
 ]

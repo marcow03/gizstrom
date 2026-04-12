@@ -9,21 +9,27 @@ class FeaturePipeline(BasePipeline):
 
     def run(self):
         self._feast_apply()
+        self._get_feature_values_test()
+
+    def _get_feature_values_test(self):
+        fs = FeatureStore(fs_yaml_file="config/feature_store.yaml")
+        feature_refs = [
+            "weather_historical:temperature_2m_mean",
+            "weather_historical:temperature_2m_max",
+            "weather_historical:temperature_2m_min",
+            "weather_historical:daylight_duration",
+            "weather_historical:sunshine_duration",
+            "weather_historical:rain_sum",
+            "weather_historical:snowfall_sum",
+            "weather_historical:shortwave_radiation_sum",
+            "power_generation:power_generation_kwh",
+        ]
+        feature_vector = fs.get_historical_features(
+            features=feature_refs,
+        ).to_df()
+        print(len(feature_vector))
 
     def _feast_apply(self):
-        # repo_config = RepoConfig(
-        #     project="gizstrom",
-        #     registry=self.config["feast_registry_destination"],
-        #     provider="local",
-        #     online_store={
-        #         "type": "redis",
-        #         "connection_string": f"{self.config['feast_redis_host']}:{self.config['feast_redis_port']},password={self.config['feast_redis_password']}",
-        #     },
-        #     offline_store={
-        #         "type": "file",
-        #     },
-        #     entity_key_serialization_version=3,
-        # )
         fs = FeatureStore(fs_yaml_file="config/feature_store.yaml")
 
         weather_schema = [
@@ -35,6 +41,10 @@ class FeaturePipeline(BasePipeline):
             Field(name="rain_sum", dtype=Float64),
             Field(name="snowfall_sum", dtype=Float64),
             Field(name="shortwave_radiation_sum", dtype=Float64),
+        ]
+
+        power_generation_schema = [
+            Field(name="power_generation_kwh", dtype=Float64),
         ]
 
         weather_historical_fv = FeatureView(
@@ -57,4 +67,14 @@ class FeaturePipeline(BasePipeline):
             ),
         )
 
-        fs.apply([weather_historical_fv, weather_forecast_fv])
+        power_generation_fv = FeatureView(
+            name="power_generation",
+            entities=[],
+            schema=power_generation_schema,
+            source=FileSource(
+                path="s3://data/uploads/power_generation/power_generation.parquet",
+                timestamp_field="date",
+            ),
+        )
+
+        fs.apply([weather_historical_fv, weather_forecast_fv, power_generation_fv])

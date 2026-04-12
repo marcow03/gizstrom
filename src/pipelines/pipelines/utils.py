@@ -1,3 +1,4 @@
+import io
 import logging
 import os
 from abc import ABC
@@ -53,6 +54,7 @@ class S3Client:
             aws_secret_access_key=config["aws_secret_access_key"],
             config=Config(s3={"addressing_style": "path"}),
         )
+        self.log = get_logger(self.__class__.__name__)
 
     def save(self, content: bytes, bucket: str, object_key: str):
         self.s3.put_object(Bucket=bucket, Key=object_key, Body=content)
@@ -60,15 +62,19 @@ class S3Client:
     def load_parquet(self, bucket: str, object_key: str) -> pd.DataFrame | None:
         try:
             response = self.s3.get_object(Bucket=bucket, Key=object_key)
-            return pd.read_parquet(response["Body"])
-        except Exception:
+            data = io.BytesIO(response["Body"].read())
+            return pd.read_parquet(data, engine="fastparquet")
+        except Exception as e:
+            self.log.error(f"Failed to load parquet file: {e}")
             return None
 
     def load_csv(self, bucket: str, object_key: str) -> pd.DataFrame | None:
         try:
             response = self.s3.get_object(Bucket=bucket, Key=object_key)
-            return pd.read_csv(response["Body"])
-        except Exception:
+            data = io.BytesIO(response["Body"].read())
+            return pd.read_csv(data)
+        except Exception as e:
+            self.log.error(f"Failed to load CSV file: {e}")
             return None
 
 
@@ -76,11 +82,15 @@ class OpenMeteoClient:
     def __init__(self):
         self._archive_url = "https://archive-api.open-meteo.com/v1/archive"
         self._forecast_url = "https://api.open-meteo.com/v1/forecast"
+        self.log = get_logger(self.__class__.__name__)
 
     def fetch_historical_weather_data(self, params: dict) -> dict | None:
         response = requests.get(self._archive_url, params=params)
 
         if response.status_code != 200:
+            self.log.error(
+                f"Failed to fetch historical weather data: {response.status_code}"
+            )
             return None
 
         return response.json()
@@ -89,6 +99,9 @@ class OpenMeteoClient:
         response = requests.get(self._forecast_url, params=params)
 
         if response.status_code != 200:
+            self.log.error(
+                f"Failed to fetch forecast weather data: {response.status_code}"
+            )
             return None
 
         return response.json()
