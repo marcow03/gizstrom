@@ -1,4 +1,3 @@
-import io
 import os
 
 import boto3
@@ -8,7 +7,8 @@ from fastapi import FastAPI, HTTPException, UploadFile
 from fastapi.logger import logger
 from fastapi.staticfiles import StaticFiles
 
-DEFAULT_ENTITY = "walenstadt"
+BUCKET = os.getenv("DATA_BUCKET", "data")
+OBJECT_KEY = "uploads/power_generation/power_generation.csv"
 
 
 def get_s3_client():
@@ -26,9 +26,6 @@ app = FastAPI()
 
 @app.post("/upload/")
 async def upload_file(file: UploadFile):
-    bucket = os.getenv("DATA_BUCKET", "data")
-    object_key = "uploads/power_generation/power_generation.parquet"
-
     logger.info(f"Got file: {file.filename}, content type: {file.content_type}")
 
     try:
@@ -36,32 +33,12 @@ async def upload_file(file: UploadFile):
         if "Datum und Uhrzeit" not in df.columns or "Gesamtanlage" not in df.columns:
             raise HTTPException(status_code=400, detail="CSV format not valid.")
 
-        # drop second row (contains units)
-        df = df.drop(index=0).reset_index(drop=True)
-        df = df.rename(
-            columns={
-                "Datum und Uhrzeit": "date",
-                "Gesamtanlage": "power_generation_kwh",
-            }
-        )
-        df = df[["date", "power_generation_kwh"]]
-        df["date"] = (
-            pd.to_datetime(df["date"], dayfirst=True, errors="raise")
-            .dt.tz_localize("Europe/Zurich")
-            .dt.tz_convert("UTC")
-        )
-        # feast needs some kind of entity to work properly
-        df["location"] = DEFAULT_ENTITY
-        parquet_buffer = io.BytesIO()
-        df.to_parquet(parquet_buffer, index=False)
-        parquet_buffer.seek(0)
-
         s3 = get_s3_client()
         s3.put_object(
-            Bucket=bucket,
-            Key=object_key,
-            Body=parquet_buffer.getvalue(),
-            ContentType="application/octet-stream",
+            Bucket=BUCKET,
+            Key=OBJECT_KEY,
+            Body=df.to_csv(index=False).encode("utf-8"),
+            ContentType="application/csv",
         )
 
     except Exception as exc:
@@ -72,8 +49,8 @@ async def upload_file(file: UploadFile):
 
     return {
         "filename": file.filename,
-        "bucket": bucket,
-        "key": object_key,
+        "bucket": BUCKET,
+        "key": OBJECT_KEY,
     }
 
 

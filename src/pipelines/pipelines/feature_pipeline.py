@@ -28,7 +28,7 @@ class FeaturePipeline(BasePipeline):
             "power_generation:power_generation_kwh",
         ]
         timestamps = [
-            pd.Timestamp(dt, unit="ms", tz="Europe/Zurich").round("ms")
+            pd.Timestamp(dt, unit="ms", tz="UTC").round("ms")
             for dt in pd.date_range(
                 start=datetime.now() - timedelta(days=100),
                 end=datetime.now(),
@@ -39,7 +39,7 @@ class FeaturePipeline(BasePipeline):
             features=feature_refs,
             entity_df=pd.DataFrame(
                 {
-                    "location": ["walenstadt"] * len(timestamps),
+                    "location": ["walenstadt-dummy"] * len(timestamps),
                     "event_timestamp": timestamps,
                 }
             ),
@@ -91,8 +91,8 @@ class FeaturePipeline(BasePipeline):
             entities=[location],
             schema=power_generation_schema,
             source=FileSource(
-                path="s3://data/uploads/power_generation/power_generation.parquet",
-                timestamp_field="date",
+                path="s3://data/source/power_generation.parquet",
+                timestamp_field="time",
             ),
         )
 
