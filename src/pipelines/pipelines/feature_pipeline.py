@@ -1,4 +1,7 @@
-from feast import FeatureStore, FeatureView, Field, FileSource
+from datetime import datetime, timedelta
+
+import pandas as pd
+from feast import Entity, FeatureStore, FeatureView, Field, FileSource, ValueType
 from feast.types import Float64
 from pipelines.utils import BasePipeline
 
@@ -24,13 +27,29 @@ class FeaturePipeline(BasePipeline):
             "weather_historical:shortwave_radiation_sum",
             "power_generation:power_generation_kwh",
         ]
+        timestamps = [
+            pd.Timestamp(dt, unit="ms", tz="Europe/Zurich").round("ms")
+            for dt in pd.date_range(
+                start=datetime.now() - timedelta(days=100),
+                end=datetime.now(),
+                periods=100,
+            )
+        ]
         feature_vector = fs.get_historical_features(
             features=feature_refs,
+            entity_df=pd.DataFrame(
+                {
+                    "location": ["walenstadt"] * len(timestamps),
+                    "event_timestamp": timestamps,
+                }
+            ),
         ).to_df()
-        print(len(feature_vector))
+        print(feature_vector)
 
     def _feast_apply(self):
         fs = FeatureStore(fs_yaml_file="config/feature_store.yaml")
+
+        location = Entity(name="location", value_type=ValueType.STRING)
 
         weather_schema = [
             Field(name="temperature_2m_mean", dtype=Float64),
@@ -49,7 +68,7 @@ class FeaturePipeline(BasePipeline):
 
         weather_historical_fv = FeatureView(
             name="weather_historical",
-            entities=[],
+            entities=[location],
             schema=weather_schema,
             source=FileSource(
                 path="s3://data/source/weather_data.parquet",
@@ -59,7 +78,7 @@ class FeaturePipeline(BasePipeline):
 
         weather_forecast_fv = FeatureView(
             name="weather_forecast",
-            entities=[],
+            entities=[location],
             schema=weather_schema,
             source=FileSource(
                 path="s3://data/source/forecast_data.parquet",
@@ -69,7 +88,7 @@ class FeaturePipeline(BasePipeline):
 
         power_generation_fv = FeatureView(
             name="power_generation",
-            entities=[],
+            entities=[location],
             schema=power_generation_schema,
             source=FileSource(
                 path="s3://data/uploads/power_generation/power_generation.parquet",
@@ -77,4 +96,6 @@ class FeaturePipeline(BasePipeline):
             ),
         )
 
-        fs.apply([weather_historical_fv, weather_forecast_fv, power_generation_fv])
+        fs.apply(
+            [location, weather_historical_fv, weather_forecast_fv, power_generation_fv]
+        )

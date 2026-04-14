@@ -1,6 +1,8 @@
 import pandas as pd
 from pipelines.utils import BasePipeline, OpenMeteoClient, S3Client
 
+DEFAULT_ENTITY = "walenstadt"
+
 
 class DataCollectionPipeline(BasePipeline):
     def __init__(self, config: dict):
@@ -54,6 +56,7 @@ class DataCollectionPipeline(BasePipeline):
             weather_data["time"] = pd.to_datetime(weather_data["time"]).dt.tz_localize(
                 "Europe/Zurich"
             )
+            weather_data["location"] = DEFAULT_ENTITY
             self.log.info(f"Fetched {len(weather_data)} rows of weather data")
             self.s3.save(
                 content=weather_data.to_parquet(index=False),
@@ -81,6 +84,7 @@ class DataCollectionPipeline(BasePipeline):
             forecast_data["time"] = pd.to_datetime(
                 forecast_data["time"]
             ).dt.tz_localize("Europe/Zurich")
+            forecast_data["location"] = DEFAULT_ENTITY
             self.log.info(f"Fetched {len(forecast_data)} rows of forecast data")
             self.s3.save(
                 content=forecast_data.to_parquet(index=False),

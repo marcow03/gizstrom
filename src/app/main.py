@@ -8,7 +8,7 @@ from fastapi import FastAPI, HTTPException, UploadFile
 from fastapi.logger import logger
 from fastapi.staticfiles import StaticFiles
 
-app = FastAPI()
+DEFAULT_ENTITY = "walenstadt"
 
 
 def get_s3_client():
@@ -19,6 +19,9 @@ def get_s3_client():
         aws_secret_access_key=os.getenv("AWS_SECRET_ACCESS_KEY"),
         config=Config(s3={"addressing_style": "path"}),
     )
+
+
+app = FastAPI()
 
 
 @app.post("/upload/")
@@ -47,6 +50,8 @@ async def upload_file(file: UploadFile):
             .dt.tz_localize("Europe/Zurich")
             .dt.tz_convert("UTC")
         )
+        # feast needs some kind of entity to work properly
+        df["location"] = DEFAULT_ENTITY
         parquet_buffer = io.BytesIO()
         df.to_parquet(parquet_buffer, index=False)
         parquet_buffer.seek(0)
@@ -58,6 +63,7 @@ async def upload_file(file: UploadFile):
             Body=parquet_buffer.getvalue(),
             ContentType="application/octet-stream",
         )
+
     except Exception as exc:
         logger.error(f"Failed to upload file to S3: {exc}")
         raise HTTPException(
