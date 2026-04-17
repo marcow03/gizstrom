@@ -1,6 +1,5 @@
 import argparse
 
-from pipelines.data_collection_pipeline import DataCollectionPipeline
 from pipelines.feature_pipeline import FeaturePipeline
 from pipelines.inference_pipeline import BatchInferencePipeline
 from pipelines.training_pipeline import TrainingPipeline
@@ -23,14 +22,13 @@ def main():
     args = parser.parse_args()
     log.info(f"Running pipeline: {args.pipeline}")
 
-    if args.pipeline == "training":
-        p = TrainingPipeline(config)
-    elif args.pipeline == "feature":
-        p = FeaturePipeline(config)
-    elif args.pipeline == "batch-inference":
-        p = BatchInferencePipeline(config)
-    elif args.pipeline == "data-collection":
-        p = DataCollectionPipeline(config)
+    match args.pipeline:
+        case "training":
+            p = TrainingPipeline(config)
+        case "feature":
+            p = FeaturePipeline(config)
+        case "batch-inference":
+            p = BatchInferencePipeline(config)
 
     p.run()
 
