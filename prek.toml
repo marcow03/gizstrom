@@ -1,0 +1,18 @@
+[[repos]]
+repo = "https://github.com/pre-commit/pre-commit-hooks"
+rev = "v6.0.0"
+hooks = [
+  { id = "end-of-file-fixer", exclude = { glob = ["*.lock", "*.drawio", "*.env", "LICENSE", ".gitignore", "*.svg", "*.png", "*.jpg"]} },
+  { id = "check-added-large-files" },
+  { id = "trailing-whitespace" },
+  { id = "check-toml" }
+
+]
+
+[[repos]]
+repo = "https://github.com/astral-sh/ruff-pre-commit"
+rev = "v0.15.11"
+hooks = [
+  { id = "ruff-check", args = ["--fix"] },
+  { id = "ruff-format" }
+]

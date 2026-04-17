@@ -3,13 +3,12 @@ import os
 
 from airflow import DAG
 from airflow.providers.docker.operators.docker import DockerOperator
-from docker.types import Mount
 
 with DAG(
     "data_collection",
     start_date=datetime(2025, 1, 1),
     schedule="10 * * * *",
-    catchup=False
+    catchup=False,
 ) as dag:
     t = DockerOperator(
         task_id="data_collection_task",
@@ -29,5 +28,5 @@ with DAG(
             "FEAST_REDIS_PASSWORD": os.getenv("FEAST_REDIS_PASSWORD"),
             "FEAST_REGISTRY_DESTINATION": os.getenv("FEAST_REGISTRY_DESTINATION"),
             "MLFLOW_TRACKING_URI": os.getenv("MLFLOW_TRACKING_URI"),
-        }
+        },
     )
