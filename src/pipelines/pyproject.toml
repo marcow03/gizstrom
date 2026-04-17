@@ -6,8 +6,11 @@ dependencies = [
     "fastapi[standard]>=0.135.2",
     "fastparquet>=2026.3.0",
     "feast[redis]>=0.61.0",
+    "mlflow>=3.11.1",
+    "numpy>=2.4.4",
     "pandas>=2.3.3",
     "pipelines",
     "requests>=2.33.1",
     "s3fs>=2026.3.0",
+    "scikit-learn>=1.8.0",
 ]

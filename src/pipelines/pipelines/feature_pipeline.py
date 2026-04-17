@@ -1,5 +1,3 @@
-from datetime import datetime, timedelta
-
 import pandas as pd
 from feast import Entity, FeatureStore, FeatureView, Field, FileSource, ValueType
 from feast.types import Float64
@@ -49,7 +47,6 @@ class FeaturePipeline(BasePipeline):
 
         self.log.info("Updating feature definitions")
         self._feast_apply()
-        self._get_feature_values_test()
 
     def _try_get_date_range_for_historical_data(
         self,
@@ -164,38 +161,6 @@ class FeaturePipeline(BasePipeline):
             object_key="source/forecast_data.parquet",
         )
         self.log.info("Saved forecast data to S3")
-
-    def _get_feature_values_test(self):
-        fs = FeatureStore(fs_yaml_file="config/feature_store.yaml")
-        feature_refs = [
-            "weather_historical:temperature_2m_mean",
-            "weather_historical:temperature_2m_max",
-            "weather_historical:temperature_2m_min",
-            "weather_historical:daylight_duration",
-            "weather_historical:sunshine_duration",
-            "weather_historical:rain_sum",
-            "weather_historical:snowfall_sum",
-            "weather_historical:shortwave_radiation_sum",
-            "power_generation:power_generation_kwh",
-        ]
-        timestamps = [
-            pd.Timestamp(dt, unit="ms", tz="UTC").round("ms")
-            for dt in pd.date_range(
-                start=datetime.now() - timedelta(days=100),
-                end=datetime.now(),
-                periods=100,
-            )
-        ]
-        feature_vector = fs.get_historical_features(
-            features=feature_refs,
-            entity_df=pd.DataFrame(
-                {
-                    "location": ["walenstadt-dummy"] * len(timestamps),
-                    "event_timestamp": timestamps,
-                }
-            ),
-        ).to_df()
-        print(feature_vector)
 
     def _feast_apply(self):
         fs = FeatureStore(fs_yaml_file="config/feature_store.yaml")

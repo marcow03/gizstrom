@@ -2,11 +2,13 @@ import io
 import logging
 import os
 from abc import ABC
+from pathlib import Path
 
 import boto3
 import pandas as pd
 import requests
 from botocore.config import Config
+from feast import FeatureStore
 
 
 def load_config() -> dict:
@@ -20,6 +22,7 @@ def load_config() -> dict:
         "feast_redis_port": os.getenv("FEAST_REDIS_PORT"),
         "feast_redis_password": os.getenv("FEAST_REDIS_PASSWORD"),
         "feast_s3_endpoint_url": os.getenv("FEAST_S3_ENDPOINT_URL"),
+        "mlflow_tracking_uri": os.getenv("MLFLOW_TRACKING_URI"),
     }
 
 
@@ -34,6 +37,12 @@ def get_logger(name: str, level: int = logging.INFO) -> logging.Logger:
     logger.addHandler(handler)
 
     return logger
+
+
+def get_feast_feature_store():
+    root_dir = Path(__file__).parent.parent
+    fs_yaml_path = os.path.join(root_dir, "config/feature_store.yaml")
+    return FeatureStore(fs_yaml_file=fs_yaml_path)
 
 
 class BasePipeline(ABC):
