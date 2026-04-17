@@ -8,15 +8,16 @@ from pipelines.utils import BasePipeline, get_feast_feature_store
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.metrics import (
     mean_absolute_error,
+    mean_absolute_percentage_error,
+    mean_squared_error,
     r2_score,
-    root_mean_squared_error,
 )
 from sklearn.model_selection import ParameterGrid, train_test_split
 
 EXPERIMENT_NAME = "power_generation_forecasting"
 REGISTERED_MODEL_NAME = "power_generation_forecasting_model"
 CHAMPION_ALIAS = "champion"
-TEST_METRIC_NAME = "test_rmse"
+TEST_METRIC_NAME = "test_mse"
 N_TRAIN_SAMPLES = 365
 
 
@@ -105,7 +106,7 @@ class TrainingPipeline(BasePipeline):
 
         best_model = None
         best_params = None
-        best_val_rmse = float("inf")
+        best_val_mse = float("inf")
 
         with mlflow.start_run(run_name="rf_hparam_tuning_and_publish"):
             mlflow.log_param("split_strategy", "random_60_20_20")
@@ -121,26 +122,27 @@ class TrainingPipeline(BasePipeline):
                     model.fit(X_train, y_train)
 
                     val_pred = model.predict(X_val)
-                    val_rmse = root_mean_squared_error(y_val, val_pred)
+                    val_mse = mean_squared_error(y_val, val_pred)
                     val_mae = mean_absolute_error(y_val, val_pred)
                     val_r2 = r2_score(y_val, val_pred)
 
                     mlflow.log_params(params)
-                    mlflow.log_metric("val_rmse", val_rmse)
+                    mlflow.log_metric("val_mse", val_mse)
                     mlflow.log_metric("val_mae", val_mae)
                     mlflow.log_metric("val_r2", val_r2)
 
-                    if val_rmse < best_val_rmse:
-                        best_val_rmse = val_rmse
+                    if val_mse < best_val_mse:
+                        best_val_mse = val_mse
                         best_params = params
                         best_model = model
 
             test_pred = best_model.predict(X_test)
 
             metrics = {
-                "best_val_rmse": best_val_rmse,
-                "test_rmse": root_mean_squared_error(y_test, test_pred),
+                "best_val_mse": best_val_mse,
+                "test_mse": mean_absolute_error(y_test, test_pred),
                 "test_mae": mean_absolute_error(y_test, test_pred),
+                "test_mape": mean_absolute_percentage_error(y_test, test_pred),
                 "test_r2": r2_score(y_test, test_pred),
             }
 
@@ -166,8 +168,8 @@ class TrainingPipeline(BasePipeline):
             mlflow.set_tag("champion_promoted", str(became_champion).lower())
 
             self.log.info(
-                f"Best params: {best_params} | val_rmse={best_val_rmse:.4f} "
-                f"| test_rmse={metrics['test_rmse']:.4f} | model_version={model_version} "
+                f"Best params: {best_params} | val_mse={best_val_mse:.4f} "
+                f"| test_mse={metrics['test_mse']:.4f} | model_version={model_version} "
                 f"| champion_promoted={became_champion}"
             )
 
