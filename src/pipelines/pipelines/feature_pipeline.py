@@ -1,7 +1,12 @@
 import pandas as pd
-from feast import Entity, FeatureStore, FeatureView, Field, FileSource, ValueType
+from feast import Entity, FeatureView, Field, FileSource, ValueType
 from feast.types import Float64
-from pipelines.utils import BasePipeline, OpenMeteoClient, S3Client
+from pipelines.utils import (
+    BasePipeline,
+    OpenMeteoClient,
+    S3Client,
+    get_feast_feature_store,
+)
 
 # Feast requires an entity to work properly...
 # For simplicity, we will use a dummy entity since we only have one location in our dataset.
@@ -163,7 +168,7 @@ class FeaturePipeline(BasePipeline):
         self.log.info("Saved forecast data to S3")
 
     def _feast_apply(self):
-        fs = FeatureStore(fs_yaml_file="config/feature_store.yaml")
+        fs = get_feast_feature_store()
 
         location = Entity(name="location", value_type=ValueType.STRING)
 

@@ -1,7 +1,7 @@
 import argparse
 
 from pipelines.feature_pipeline import FeaturePipeline
-from pipelines.inference_pipeline import BatchInferencePipeline
+from pipelines.inference_pipeline import InferencePipeline
 from pipelines.training_pipeline import TrainingPipeline
 from pipelines.utils import get_logger, load_config
 
@@ -14,7 +14,7 @@ def main():
     parser.add_argument(
         "--pipeline",
         type=str,
-        choices=["feature", "training", "batch-inference", "data-collection"],
+        choices=["feature", "training", "inference"],
         required=True,
         help="The pipeline to run",
     )
@@ -27,8 +27,8 @@ def main():
             p = TrainingPipeline(config)
         case "feature":
             p = FeaturePipeline(config)
-        case "batch-inference":
-            p = BatchInferencePipeline(config)
+        case "inference":
+            p = InferencePipeline(config)
 
     p.run()
 

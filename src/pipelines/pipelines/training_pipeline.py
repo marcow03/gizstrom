@@ -19,6 +19,7 @@ REGISTERED_MODEL_NAME = "power_generation_forecasting_model"
 CHAMPION_ALIAS = "champion"
 TEST_METRIC_NAME = "test_mse"
 N_TRAIN_SAMPLES = 365
+MODEL_NAME = "random_forest_regressor"
 
 
 class TrainingPipeline(BasePipeline):
@@ -151,7 +152,7 @@ class TrainingPipeline(BasePipeline):
 
             model_info = mlflow.sklearn.log_model(
                 sk_model=best_model,
-                name="model",
+                name=MODEL_NAME,
                 registered_model_name=REGISTERED_MODEL_NAME,
                 input_example=X_test.head(5),
             )
