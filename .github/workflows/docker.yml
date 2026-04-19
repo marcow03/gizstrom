@@ -1,8 +1,12 @@
 name: Build images and push to registry
 on:
   push:
-    tags:
-      - "v*.*.*"
+    paths:
+      - "src/pipelines/**"
+      - "src/app/**"
+      - "infra/airflow/Dockerfile"
+      - "infra/feast/Dockerfile"
+      - ".github/workflows/docker.yml"
 
 env:
   REGISTRY: ghcr.io
