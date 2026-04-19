@@ -1,5 +1,4 @@
-from dataclasses import dataclass
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Any
 
 import mlflow
@@ -12,11 +11,7 @@ from pipelines.utils import BasePipeline, get_feast_feature_store
 DUMMY_ENTITY = "walenstadt-dummy"
 REGISTERED_MODEL_NAME = "power_generation_forecasting_model"
 CHAMPION_ALIAS = "champion"
-
-
-@dataclass
-class InferenceRequest:
-    timestamps: list[datetime]
+MODEL_RELOAD_INTERVAL_SECONDS = 6 * 60 * 60  # 6 hours
 
 
 class InferencePipeline(BasePipeline):
@@ -24,11 +19,10 @@ class InferencePipeline(BasePipeline):
         super().__init__(config)
         self._mlflow_client = mlflow.MlflowClient()
         mlflow.set_tracking_uri(self.config["mlflow_tracking_uri"])
-
-    def run(self):
-        model = self._load_champion_model()
-        fs = get_feast_feature_store()
-        feature_refs = [
+        self._model = self._load_champion_model()
+        self._last_model_load_time = datetime.now()
+        self._fs = get_feast_feature_store()
+        self._feature_refs = [
             "weather_forecast:temperature_2m_mean",
             "weather_forecast:temperature_2m_max",
             "weather_forecast:temperature_2m_min",
@@ -38,28 +32,26 @@ class InferencePipeline(BasePipeline):
             "weather_forecast:snowfall_sum",
             "weather_forecast:shortwave_radiation_sum",
         ]
+
+    def run(self):
+        self.log.info("Starting inference pipeline")
+
         app = FastAPI()
 
-        @app.post("/predict")
-        def predict(request: InferenceRequest):
-            timestamps = request.timestamps
-            if not timestamps:
-                raise HTTPException(
-                    status_code=400,
-                    detail="No valid dates provided for inference. Please provide a list of ISO formatted date strings with the 'dates' key in the request body.",
+        @app.get("/predict")
+        def predict():
+            timestamps = [
+                pd.Timestamp(dt, unit="ms", tz="UTC").round("ms")
+                for dt in pd.date_range(
+                    start=datetime.now(),
+                    end=datetime.now() + timedelta(days=7),
+                    periods=7,
                 )
-            for ts in timestamps:
-                if ts < pd.Timestamp.now(tz="UTC") or ts > pd.Timestamp.now(
-                    tz="UTC"
-                ) + pd.Timedelta(days=7):
-                    raise HTTPException(
-                        status_code=400,
-                        detail=f"Invalid date {ts}. Only future dates are allowed for inference.",
-                    )
+            ]
 
             features = (
-                fs.get_historical_features(
-                    features=feature_refs,
+                self._fs.get_historical_features(
+                    features=self._feature_refs,
                     entity_df=pd.DataFrame(
                         {
                             "location": ["walenstadt-dummy"] * len(timestamps),
@@ -71,32 +63,42 @@ class InferencePipeline(BasePipeline):
                 .dropna()
             )
 
-            if model is None:
+            if (
+                datetime.now() - self._last_model_load_time
+            ).total_seconds() > MODEL_RELOAD_INTERVAL_SECONDS:
+                self.log.info("Reloading champion model due to staleness")
+                self._model = self._load_champion_model()
+
+            if self._model is None:
                 raise HTTPException(
                     status_code=503, detail="No model available for inference"
                 )
 
-            prediction = model.predict(
-                features[
-                    [
-                        "temperature_2m_mean",
-                        "temperature_2m_max",
-                        "temperature_2m_min",
-                        "daylight_duration",
-                        "sunshine_duration",
-                        "rain_sum",
-                        "snowfall_sum",
-                        "shortwave_radiation_sum",
-                    ]
+            if features.empty:
+                raise HTTPException(
+                    status_code=503, detail="No features available for inference"
+                )
+
+            X_pred = features[
+                [
+                    "temperature_2m_mean",
+                    "temperature_2m_max",
+                    "temperature_2m_min",
+                    "daylight_duration",
+                    "sunshine_duration",
+                    "rain_sum",
+                    "snowfall_sum",
+                    "shortwave_radiation_sum",
                 ]
-            )
+            ]
+            prediction = self._model.predict(X_pred)
 
             return {
-                "features": features.to_dict(),
+                "features": features.to_dict(orient="list"),
                 "pred_power_generation_kwh": prediction.tolist(),
             }
 
-        uvicorn.run(app, host="0.0.0.0", port=8000)
+        uvicorn.run(app, host="0.0.0.0", port=8001)
 
     def _load_champion_model(self) -> Any | None:
         try:

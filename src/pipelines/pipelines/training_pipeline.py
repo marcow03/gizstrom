@@ -19,7 +19,17 @@ REGISTERED_MODEL_NAME = "power_generation_forecasting_model"
 CHAMPION_ALIAS = "champion"
 TEST_METRIC_NAME = "test_mse"
 N_TRAIN_SAMPLES = 365
+
+MODEL = RandomForestRegressor
 MODEL_NAME = "random_forest_regressor"
+PARAM_GRID = ParameterGrid(
+    {
+        "n_estimators": [100, 200, 300, 400],
+        "max_depth": [None, 4, 8, 16, 32],
+        "min_samples_split": [2, 5, 10],
+        "min_samples_leaf": [1, 2, 4],
+    }
+)
 
 
 class TrainingPipeline(BasePipeline):
@@ -96,30 +106,21 @@ class TrainingPipeline(BasePipeline):
             X_test, y_test, test_size=0.5, shuffle=False
         )
 
-        param_grid = ParameterGrid(
-            {
-                "n_estimators": [100, 200, 300, 400],
-                "max_depth": [None, 8, 16, 32],
-                "min_samples_split": [2, 5, 10],
-                "min_samples_leaf": [1, 2, 4],
-            }
-        )
-
         best_model = None
         best_params = None
         best_val_mse = float("inf")
 
-        with mlflow.start_run(run_name="rf_hparam_tuning_and_publish"):
+        with mlflow.start_run(run_name="hparam_tuning_and_publish"):
             mlflow.log_param("split_strategy", "random_60_20_20")
             mlflow.log_param("n_samples_used", len(features))
-            mlflow.log_param("n_trials", len(param_grid))
+            mlflow.log_param("n_trials", len(PARAM_GRID))
 
-            for i, params in enumerate(param_grid):
+            for i, params in enumerate(PARAM_GRID):
                 with mlflow.start_run(
                     run_name=f"trial_{i}",
                     nested=True,
                 ):
-                    model = RandomForestRegressor(**params)
+                    model = MODEL(**params, random_state=42)
                     model.fit(X_train, y_train)
 
                     val_pred = model.predict(X_val)
