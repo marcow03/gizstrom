@@ -33,7 +33,7 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build and push `pipelines` image
-        id: push
+        id: build-push-pipelines
         uses: docker/build-push-action@v6
         with:
           context: ./src/pipelines
@@ -41,7 +41,7 @@ jobs:
           tags: ${{ env.REGISTRY }}/pipelines:${{ github.ref_name }}, ${{ env.REGISTRY }}/pipelines:latest
 
       - name: Build and push `app` image
-        id: push
+        id: build-push-app
         uses: docker/build-push-action@v6
         with:
           context: ./src/app
@@ -49,7 +49,7 @@ jobs:
           tags: ${{ env.REGISTRY }}/app:${{ github.ref_name }}, ${{ env.REGISTRY }}/app:latest
 
       - name: Build and push `aiflow` image
-        id: push
+        id: build-push-airflow
         uses: docker/build-push-action@v6
         with:
           context: ./infra/airflow
@@ -57,7 +57,7 @@ jobs:
           tags: ${{ env.REGISTRY }}/airflow:${{ github.ref_name }}, ${{ env.REGISTRY }}/airflow:latest
 
       - name: Build and push `feast` image
-        id: push
+        id: build-push-feast
         uses: docker/build-push-action@v6
         with:
           context: ./infra/feast
