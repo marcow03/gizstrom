@@ -10,6 +10,7 @@ on:
 
 env:
   REGISTRY: ghcr.io
+  IMAGE_NAMESPACE: ${{ github.repository }}
 
 jobs:
   build-and-push-image:
@@ -38,7 +39,7 @@ jobs:
         with:
           context: ./src/pipelines
           push: true
-          tags: ${{ env.REGISTRY }}/pipelines:${{ github.ref_name }}, ${{ env.REGISTRY }}/pipelines:latest
+          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAMESPACE }}/pipelines:${{ github.ref_name }}, ${{ env.REGISTRY }}/${{ env.IMAGE_NAMESPACE }}/pipelines:latest
 
       - name: Build and push `app` image
         id: build-push-app
@@ -46,15 +47,15 @@ jobs:
         with:
           context: ./src/app
           push: true
-          tags: ${{ env.REGISTRY }}/app:${{ github.ref_name }}, ${{ env.REGISTRY }}/app:latest
+          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAMESPACE }}/app:${{ github.ref_name }}, ${{ env.REGISTRY }}/${{ env.IMAGE_NAMESPACE }}/app:latest
 
-      - name: Build and push `aiflow` image
+      - name: Build and push `airflow` image
         id: build-push-airflow
         uses: docker/build-push-action@v6
         with:
           context: ./infra/airflow
           push: true
-          tags: ${{ env.REGISTRY }}/airflow:${{ github.ref_name }}, ${{ env.REGISTRY }}/airflow:latest
+          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAMESPACE }}/airflow:${{ github.ref_name }}, ${{ env.REGISTRY }}/${{ env.IMAGE_NAMESPACE }}/airflow:latest
 
       - name: Build and push `feast` image
         id: build-push-feast
@@ -62,4 +63,4 @@ jobs:
         with:
           context: ./infra/feast
           push: true
-          tags: ${{ env.REGISTRY }}/feast:${{ github.ref_name }}, ${{ env.REGISTRY }}/feast:latest
+          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAMESPACE }}/feast:${{ github.ref_name }}, ${{ env.REGISTRY }}/${{ env.IMAGE_NAMESPACE }}/feast:latest
