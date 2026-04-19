@@ -52,10 +52,10 @@ jobs:
 
             docker buildx build \
               --platform ${{ env.PLATFORMS }} \
-              --context "$CONTEXT" \
               --push \
               --tag ${{ env.REGISTRY }}/${{ env.IMAGE_NAMESPACE }}/$target:${{ github.ref_name }} \
               --tag ${{ env.REGISTRY }}/${{ env.IMAGE_NAMESPACE }}/$target:latest \
               --cache-from type=gha,scope=$target \
-              --cache-to type=gha,mode=max,scope=$target .
+              --cache-to type=gha,mode=max,scope=$target \
+              "$CONTEXT"
           done
