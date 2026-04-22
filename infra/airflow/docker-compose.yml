@@ -1,7 +1,8 @@
 services:
   airflow:
     image: ghcr.io/marcow03/gizstrom/airflow
-    build: .
+    # for testing, we can build the image locally
+    # build: .
     depends_on:
       rustfs:
         condition: service_healthy

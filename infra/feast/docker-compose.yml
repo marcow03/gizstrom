@@ -12,7 +12,8 @@ services:
 
   feast-ui:
     image: ghcr.io/marcow03/gizstrom/feast-ui
-    build: .
+    # for testing, we can build the image locally
+    # build: .
     restart: unless-stopped
     depends_on:
       rustfs:

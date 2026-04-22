@@ -1,0 +1,16 @@
+services:
+  inference-endpoint:
+    image: ghcr.io/marcow03/gizstrom/pipelines:latest
+    # for testing, we can build the image locally
+    # build: ../../src/pipelines
+    ports:
+      - "8001:8001"
+    environment:
+      MLFLOW_TRACKING_URI: ${MLFLOW_TRACKING_URI}
+      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID}
+      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY}
+      AWS_ENDPOINT_URL: ${AWS_ENDPOINT_URL}
+      FEAST_REGISTRY_DESTINATION: ${FEAST_REGISTRY_DESTINATION}
+    networks:
+      - production
+    command: "uv run main.py --pipeline inference"
