@@ -6,4 +6,4 @@ include:
   - infra/feast/docker-compose.yml
   - infra/airflow/docker-compose.yml
   - infra/app/docker-compose.yml
-  # - infra/compute-instance/docker-compose.yml
+  - infra/compute-instance/docker-compose.yml

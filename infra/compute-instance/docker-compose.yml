@@ -2,10 +2,22 @@ services:
   compute-instance:
     image: docker:29.3.1-dind
     privileged: true
-    hostname: compute-instance
+    ports:
+      - "8001:8001" # inference endpoint pass-through
     environment:
       DOCKER_TLS_CERTDIR: "/certs"
+      TINI_SUBREAPER: true
+      # pass through env vars for mlflow and s3 access to the inference endpoint
+      MLFLOW_TRACKING_URI: ${MLFLOW_TRACKING_URI}
+      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID}
+      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY}
+      AWS_ENDPOINT_URL: ${AWS_ENDPOINT_URL}
+      FEAST_REGISTRY_DESTINATION: ${FEAST_REGISTRY_DESTINATION}
     volumes:
+      - ./inference-endpoint:/inference-endpoint
+      - ./entrypoint.sh:/entrypoint.sh
       - ../../data/compute-instance/docker-certs:/certs
+      - ../../data/compute-instance/cache:/var/lib/docker
     networks:
       - production
+    command: ["./entrypoint.sh"]
