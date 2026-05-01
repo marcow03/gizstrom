@@ -1,3 +1,5 @@
+from datetime import timedelta
+
 import pandas as pd
 from feast import Entity, FeatureView, Field, FileSource, ValueType
 from feast.types import Float64
@@ -201,6 +203,7 @@ class FeaturePipeline(BasePipeline):
             name="weather_forecast",
             entities=[location],
             schema=weather_schema,
+            ttl=timedelta(days=1),
             source=FileSource(
                 path="s3://data/source/forecast_data.parquet",
                 timestamp_field="time",

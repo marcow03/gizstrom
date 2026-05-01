@@ -35,68 +35,76 @@
             }
         }
 
-        const measurementData = [
-            {date: "2026-03-22", kwh: 12.5},
-            {date: "2026-03-23", kwh: 15.2},
-            {date: "2026-03-24", kwh: 9.8},
-            {date: "2026-03-25", kwh: 18.4},
-            {date: "2026-03-26", kwh: 22.1},
-            {date: "2026-03-27", kwh: 14.7},
-            {date: "2026-03-28", kwh: 19.3}
-        ];
+        $(async () => {
+            // Fetch data from both endpoints
+            try {
+                const [histRes, foreRes] = await Promise.all([
+                    fetch('/power-generation/historical/').then(r => r.json()),
+                    fetch('/power-generation/forecast/').then(r => r.json())
+                ]);
 
-        const predictedData = [
-            {date: "2026-03-29", kwh: 21.2},
-            {date: "2026-03-30", kwh: 18.5},
-            {date: "2026-03-31", kwh: 24.0},
-            {date: "2026-04-01", kwh: 22.8}
-        ];
+                // Format the data for Chart.js
+                // Mapping time to date and the specific kWh keys to a unified format
+                // Only display the last 14 days of historical data
+                const measurementData = histRes.map(d => ({
+                    date: d.time.split('T')[0],
+                    kwh: d.power_generation_kwh
+                })).slice(-14);
 
-        $(() => {
-            const ctx = document.getElementById('energyChart').getContext('2d');
-            const labels = [...measurementData.map(d => d.date), ...predictedData.map(d => d.date)];
+                const predictedData = foreRes.map(d => ({
+                    date: d.time.split('T')[0],
+                    kwh: d.pred_power_generation_kwh
+                }));
 
-            new Chart(ctx, {
-                type: 'line',
-                data: {
-                    labels: labels,
-                    datasets: [
-                        {
-                            label: 'Past Generation',
-                            data: measurementData.map(d => d.kwh),
-                            borderColor: 'hsl(240 6% 10%)',
-                            backgroundColor: 'rgba(24, 24, 27, 0.05)',
-                            borderWidth: 2,
-                            tension: 0.3,
-                            fill: true
-                        },
-                        {
-                            label: 'Predicted Generation',
-                            data: [
-                                ...Array(measurementData.length - 1).fill(null),
-                                measurementData[measurementData.length - 1].kwh,
-                                ...predictedData.map(d => d.kwh)
-                            ],
-                            borderColor: '#22c55e',
-                            backgroundColor: 'rgba(34, 197, 94, 0.05)',
-                            borderWidth: 2,
-                            borderDash: [5, 5],
-                            tension: 0.3,
-                            fill: true
+                const labels = [...measurementData.map(d => d.date), ...predictedData.map(d => d.date)];
+
+                // Initialize Chart
+                const ctx = document.getElementById('energyChart').getContext('2d');
+                new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: labels,
+                        datasets: [
+                            {
+                                label: 'Past Generation',
+                                data: measurementData.map(d => d.kwh),
+                                borderColor: 'hsl(240 6% 10%)',
+                                backgroundColor: 'rgba(24, 24, 27, 0.05)',
+                                borderWidth: 2,
+                                tension: 0.3,
+                                fill: true
+                            },
+                            {
+                                label: 'Predicted Generation',
+                                data: [
+                                    ...Array(Math.max(0, measurementData.length - 1)).fill(null),
+                                    measurementData.length > 0 ? measurementData[measurementData.length - 1].kwh : null,
+                                    ...predictedData.map(d => d.kwh)
+                                ],
+                                borderColor: '#22c55e',
+                                backgroundColor: 'rgba(34, 197, 94, 0.05)',
+                                borderWidth: 2,
+                                borderDash: [5, 5],
+                                tension: 0.3,
+                                fill: true
+                            }
+                        ]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: { legend: { display: true, labels: { usePointStyle: true, pointStyle: "line" } } },
+                        scales: {
+                            y: { beginAtZero: true, grid: { color: 'hsl(240 5.9% 90%)' } },
+                            x: { grid: { display: false } }
                         }
-                    ]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {legend: {display: true, labels: {usePointStyle: true, pointStyle: "line"}}},
-                    scales: {
-                        y: {beginAtZero: true, grid: {color: 'hsl(240 5.9% 90%)'}},
-                        x: {grid: {display: false}}
                     }
-                }
-            });
+                });
+            } catch (err) {
+                console.error("Error loading energy data:", err);
+            }
 
+            // UI Logic (Modal & File Upload)
             const $modal = $("#uploadModal");
             const $fileInput = $("#csvInput");
             const $dropZone = $("#dropZone");
@@ -183,7 +191,7 @@
                         body: formData
                     }).then(response => response.json())
                       .then(() => closeModal())
-                      .catch(() => alert("Failed to upload file."));
+                        .catch(() => alert("Failed to upload file."));
                 } else {
                     alert("Please select a file first.");
                 }
@@ -208,8 +216,8 @@
 
         <div class="rounded-xl border bg-card shadow-sm p-6">
             <div class="mb-4">
-                <h2 class="text-lg font-semibold">Weekly Generation & Forecast</h2>
-                <p class="text-xs text-muted">Comparison of recorded and predicted output</p>
+                <h2 class="text-lg font-semibold">Past Generation & Forecast</h2>
+                <p class="text-xs text-muted">Comparison of recorded and predicted power generation</p>
             </div>
             <div class="h-64 w-full">
                 <canvas id="energyChart"></canvas>

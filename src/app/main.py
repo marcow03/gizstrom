@@ -86,12 +86,38 @@ async def get_forecast_weather():
         ) from exc
 
 
+@app.get("/power-generation/historical/")
+async def get_historical_power_generation():
+    try:
+        response = s3.get_object(Bucket=BUCKET, Key="source/power_generation.parquet")
+        data = io.BytesIO(response["Body"].read())
+        df = pd.read_parquet(data).drop(columns=["location"])
+        return df.to_dict(orient="records")
+    except Exception as exc:
+        logger.error(f"Failed to retrieve historical power generation data: {exc}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to retrieve historical power generation data: {exc}",
+        ) from exc
+
+
 @app.get("/power-generation/forecast/")
 async def get_forecast_power_generation():
     try:
         response = requests.get(INFERENCE_ENDPOINT_URL)
         response.raise_for_status()
-        return response.json()
+        json = response.json()
+        output = []
+        for i, pred in enumerate(json["pred_power_generation_kwh"]):
+            output.append(
+                {
+                    "time": json["features"]["event_timestamp"][i],
+                    "pred_power_generation_kwh": pred,
+                }
+            )
+
+        return output
+
     except Exception as exc:
         logger.error(f"Failed to retrieve forecast power generation data: {exc}")
         raise HTTPException(
