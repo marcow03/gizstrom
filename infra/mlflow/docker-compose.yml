@@ -7,7 +7,7 @@ services:
       create-buckets:
         condition: service_completed_successfully
     ports:
-      - "${MLFLOW_PORT}:${MLFLOW_PORT}"
+      - "5001:5001"
     volumes:
       - ../../data/mlflow/metadata:/metadata
     environment:
@@ -15,16 +15,13 @@ services:
       MLFLOW_ARTIFACTS_DESTINATION: ${MLFLOW_ARTIFACTS_DESTINATION}
       AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID}
       AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY}
-      MLFLOW_S3_IGNORE_TLS: "true"
-      MLFLOW_HOST: ${MLFLOW_HOST}
-      MLFLOW_PORT: ${MLFLOW_PORT}
+      MLFLOW_S3_IGNORE_TLS: true
       MLFLOW_DISABLE_TELEMETRY: true
       DO_NOT_TRACK: true
     networks:
       - production
-      - development
     healthcheck:
-      test: [ "CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:${MLFLOW_PORT}/health')" ]
+      test: [ "CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:5001/health')" ]
       interval: 10s
       timeout: 5s
       retries: 30
@@ -39,6 +36,6 @@ services:
           --backend-store-uri "${MLFLOW_BACKEND_STORE_URI}" \
           --artifacts-destination "${MLFLOW_ARTIFACTS_DESTINATION}" \
           --serve-artifacts \
-          --host "${MLFLOW_HOST}" \
-          --port "${MLFLOW_PORT}" \
+          --host 0.0.0.0 \
+          --port 5001 \
           --disable-security-middleware

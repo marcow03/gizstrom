@@ -18,4 +18,4 @@ services:
       INFERENCE_ENDPOINT_URL: ${INFERENCE_ENDPOINT_URL}
     networks:
       - production
-      - development
+      - ingress

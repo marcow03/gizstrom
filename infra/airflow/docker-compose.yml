@@ -15,8 +15,7 @@ services:
       - ../../data/airflow/data:/opt/airflow/data
       - ../../data/airflow/data/logs:/opt/airflow/logs
       - ../../data/airflow/data/config:/opt/airflow/config
-      - ../../data/compute-instance/docker-certs:/certs
-      - /var/run/docker.sock:/var/run/docker.sock # For quicker testing, use host's docker.
+      - /var/run/docker.sock:/var/run/docker.sock
     environment:
       AIRFLOW__WEBSERVER__EXPOSE_CONFIG: True
       AIRFLOW__CORE__SIMPLE_AUTH_MANAGER_ALL_ADMINS: True
@@ -24,15 +23,10 @@ services:
       AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID}
       AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY}
       DATA_BUCKET: ${DATA_BUCKET}
-      FEAST_REDIS_HOST: ${FEAST_REDIS_HOST}
-      FEAST_REDIS_PORT: ${FEAST_REDIS_PORT}
-      FEAST_REDIS_PASSWORD: ${FEAST_REDIS_PASSWORD}
       FEAST_REGISTRY_DESTINATION: ${FEAST_REGISTRY_DESTINATION}
       MLFLOW_TRACKING_URI: ${MLFLOW_TRACKING_URI}
     networks:
       - production
-      - development
-      - ingress
     command: standalone
     user: "50000:0"
     working_dir: /opt/airflow

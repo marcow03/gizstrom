@@ -8,14 +8,13 @@ services:
       - ../../data/rustfs/data:/data
       - ../../data/rustfs/logs:/app/logs
     environment:
-      - RUSTFS_ADDRESS=0.0.0.0:9000
-      - RUSTFS_CONSOLE_ADDRESS=0.0.0.0:9001
-      - RUSTFS_ACCESS_KEY=${AWS_ACCESS_KEY_ID}
-      - RUSTFS_SECRET_KEY=${AWS_SECRET_ACCESS_KEY}
-      - RUSTFS_CONSOLE_ENABLE=true
+      RUSTFS_ADDRESS: 0.0.0.0:9000
+      RUSTFS_CONSOLE_ADDRESS: 0.0.0.0:9001
+      RUSTFS_ACCESS_KEY: ${AWS_ACCESS_KEY_ID}
+      RUSTFS_SECRET_KEY: ${AWS_SECRET_ACCESS_KEY}
+      RUSTFS_CONSOLE_ENABLE: true
     networks:
       - production
-      - development
     healthcheck:
       test: [ "CMD", "sh", "-c", "curl -f http://127.0.0.1:9000/health && curl -f http://127.0.0.1:9001/rustfs/console/health" ]
       interval: 30s
