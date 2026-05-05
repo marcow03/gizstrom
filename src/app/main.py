@@ -13,6 +13,7 @@ BUCKET = os.getenv("DATA_BUCKET", "data")
 INFERENCE_ENDPOINT_URL = os.getenv(
     "INFERENCE_ENDPOINT_URL", "http://inference-endpoint:8001/predict"
 )
+AIRFLOW_BASE_URL = os.getenv("AIRFLOW_BASE_URL", "http://airflow:8080")
 
 
 def get_s3_client():
@@ -23,6 +24,29 @@ def get_s3_client():
         aws_secret_access_key=os.getenv("AWS_SECRET_ACCESS_KEY"),
         config=Config(s3={"addressing_style": "path"}),
     )
+
+
+def trigger_airflow_dag():
+    token_resp = requests.post(
+        f"{AIRFLOW_BASE_URL}/auth/token",
+        # The airflow instance is not secured by a password.
+        # The API requires a username and password, but they can be anything.
+        data={"username": "admin", "password": "admin"},
+        headers={"content-type": "application/x-www-form-urlencoded"},
+    )
+    token = token_resp.json().get("access_token")
+    if not token:
+        logger.error(f"Failed to get Airflow token: {token_resp.text}")
+
+    task_resp = requests.post(
+        f"{AIRFLOW_BASE_URL}/api/v2/dags/feature_and_training/dagRuns",
+        json={
+            "logical_date": pd.Timestamp.now().tz_localize("UTC").isoformat(),
+        },
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    if task_resp.status_code != 200:
+        logger.error(f"Failed to trigger Airflow DAG: {task_resp.text}")
 
 
 app = FastAPI()
@@ -50,6 +74,11 @@ async def upload_file(file: UploadFile):
         raise HTTPException(
             status_code=500, detail=f"Failed to upload file to S3: {exc}"
         ) from exc
+
+    try:
+        trigger_airflow_dag()
+    except Exception as exc:
+        logger.error(f"Failed to trigger Airflow DAG: {exc}")
 
     return {
         "filename": file.filename,
