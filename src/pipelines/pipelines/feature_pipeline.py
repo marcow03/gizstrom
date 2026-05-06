@@ -49,8 +49,18 @@ class FeaturePipeline(BasePipeline):
         # Check if historical weather data is available for the date range of the power generation data, if not fetch it
         dates_hist = self._try_get_date_range_for_historical_data()
         dates_power_gen = self._try_get_date_range_for_power_generation_data()
+
+        # If historical weather data is not available at all, we need to fetch it for the date range of the power generation data
+        if dates_hist is None and dates_power_gen is not None:
+            start_date_power_gen, end_date_power_gen = dates_power_gen
+            self.log.info(
+                f"Historical weather data not found, fetching for date range from {start_date_power_gen} to {end_date_power_gen}"
+            )
+            self._fetch_and_save_historical_weather_data(
+                start_date_power_gen, end_date_power_gen
+            )
         # Only fetch historical weather data for the date range of the power generation data
-        if dates_hist is not None and dates_power_gen is not None:
+        elif dates_hist is not None and dates_power_gen is not None:
             start_date_hist, end_date_hist = dates_hist
             start_date_power_gen, end_date_power_gen = dates_power_gen
 
@@ -83,11 +93,11 @@ class FeaturePipeline(BasePipeline):
     ) -> tuple[pd.Timestamp, pd.Timestamp] | None:
         generation_data = self.s3.load_parquet(
             bucket=self.config["data_bucket"],
-            object_key="source/power_generation.parquet",
+            object_key="source/weather_data.parquet",
         )
 
         if generation_data is None:
-            self.log.error("Power generation data not found in S3")
+            self.log.error("Historical weather data not found in S3")
             return None
 
         start_date = generation_data["time"].min()

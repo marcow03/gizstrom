@@ -7,6 +7,7 @@ with DAG(
     "feature_and_training",
     schedule="@daily",
     catchup=False,
+    is_paused_upon_creation=False,
     tags=["gizstrom", "training", "feature"],
 ) as dag:
     feature_task = DockerOperator(
