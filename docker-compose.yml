@@ -3,7 +3,7 @@ include:
   - infra/create-buckets.yml
   - infra/rustfs/docker-compose.yml
   - infra/mlflow/docker-compose.yml
-  - infra/feast/docker-compose.yml
+  - infra/feast-ui/docker-compose.yml
   - infra/airflow/docker-compose.yml
   - infra/app/docker-compose.yml
   - infra/inference-endpoint/docker-compose.yml
