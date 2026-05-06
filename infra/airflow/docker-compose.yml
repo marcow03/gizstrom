@@ -1,6 +1,6 @@
 services:
   airflow:
-    image: ghcr.io/marcow03/gizstrom/airflow
+    image: ghcr.io/marcow03/gizstrom/airflow:latest
     # for testing, we can build the image locally
     # build: .
     depends_on:

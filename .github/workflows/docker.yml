@@ -41,7 +41,7 @@ jobs:
 
       - name: Build and push images
         run: |
-          for target in pipelines app airflow feast; do
+          for target in pipelines app airflow feast-ui; do
             if [[ "$target" == "pipelines" || "$target" == "app" ]]; then
               CONTEXT="./src/$target"
             else
