@@ -18,9 +18,6 @@ def load_config() -> dict:
         "aws_access_key_id": os.getenv("AWS_ACCESS_KEY_ID"),
         "aws_secret_access_key": os.getenv("AWS_SECRET_ACCESS_KEY"),
         "feast_registry_destination": os.getenv("FEAST_REGISTRY_DESTINATION"),
-        "feast_redis_host": os.getenv("FEAST_REDIS_HOST"),
-        "feast_redis_port": os.getenv("FEAST_REDIS_PORT"),
-        "feast_redis_password": os.getenv("FEAST_REDIS_PASSWORD"),
         "feast_s3_endpoint_url": os.getenv("FEAST_S3_ENDPOINT_URL"),
         "mlflow_tracking_uri": os.getenv("MLFLOW_TRACKING_URI"),
     }

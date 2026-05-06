@@ -209,3 +209,11 @@ __marimo__/
 .DS_Store
 data/
 .env
+
+# Local .terraform directories
+.terraform/
+
+# .tfstate files
+*.tfstate
+*.tfstate.*
+.terraform.*

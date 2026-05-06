@@ -42,20 +42,60 @@ class FeaturePipeline(BasePipeline):
     def run(self):
         self.log.info("Starting feature pipeline")
 
+        # Fetch, clean and save power generation data to S3
         self.log.info("Collecting and processing data")
         self._fetch_clean_and_save_power_generation_data()
-        dates = self._try_get_date_range_for_historical_data()
+
+        # Check if historical weather data is available for the date range of the power generation data, if not fetch it
+        dates_hist = self._try_get_date_range_for_historical_data()
+        dates_power_gen = self._try_get_date_range_for_power_generation_data()
         # Only fetch historical weather data for the date range of the power generation data
-        if dates is not None:
-            start_date, end_date = dates
-            self.log.info(f"Power generation data from {start_date} to {end_date}")
-            self._fetch_and_save_historical_weather_data(start_date, end_date)
+        if dates_hist is not None and dates_power_gen is not None:
+            start_date_hist, end_date_hist = dates_hist
+            start_date_power_gen, end_date_power_gen = dates_power_gen
+
+            # If the historical weather data is not available for the date range of the power generation data, we need to fetch it
+            # else we can assume that the historical weather data is already available for the date range of the power generation data
+            if (
+                start_date_hist > start_date_power_gen
+                or end_date_hist < end_date_power_gen
+            ):
+                self.log.info(
+                    f"Power generation data from {start_date_hist} to {end_date_hist}"
+                )
+                self._fetch_and_save_historical_weather_data(
+                    start_date_hist, end_date_hist
+                )
+            else:
+                self.log.info(
+                    "Historical weather data already available for the date range of the power generation data, skipping fetch"
+                )
+
+        # Forecast data is always fetched to have the most up-to-date forecast data available
         self._fetch_and_save_forecast_weather_data()
 
+        # Update feature definitions in Feast
         self.log.info("Updating feature definitions")
         self._feast_apply()
 
     def _try_get_date_range_for_historical_data(
+        self,
+    ) -> tuple[pd.Timestamp, pd.Timestamp] | None:
+        generation_data = self.s3.load_parquet(
+            bucket=self.config["data_bucket"],
+            object_key="source/power_generation.parquet",
+        )
+
+        if generation_data is None:
+            self.log.error("Power generation data not found in S3")
+            return None
+
+        start_date = generation_data["time"].min()
+        end_date = generation_data["time"].max()
+
+        return start_date, end_date
+
+    def _try_get_date_range_for_power_generation_data(
         self,
     ) -> tuple[pd.Timestamp, pd.Timestamp] | None:
         generation_data = self.s3.load_parquet(
