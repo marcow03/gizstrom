@@ -16,6 +16,7 @@ services:
       AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY}
       S3_ENDPOINT_URL: ${S3_ENDPOINT_URL}
       INFERENCE_ENDPOINT_URL: ${INFERENCE_ENDPOINT_URL}
+      AIRFLOW_BASE_URL: ${AIRFLOW_BASE_URL}
     networks:
       - production
       - ingress

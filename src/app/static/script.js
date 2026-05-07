@@ -1,10 +1,14 @@
 $(async () => {
     // Fetch data from both endpoints
     try {
-        const [histRes, foreRes] = await Promise.all([
+        const [histRes, foreRes] = await Promise.allSettled([
             fetch('/power-generation/historical/').then(r => r.json()),
             fetch('/power-generation/forecast/').then(r => r.json())
         ]);
+
+        // Check results and handle failures
+        const historicalData = histRes.status === "fulfilled" ? histRes.value : [];
+        const forecastData = foreRes.status === "fulfilled" ? foreRes.value : [];
 
         // Format the data for Chart.js
         // Mapping time to date and the specific kWh keys to a unified format
