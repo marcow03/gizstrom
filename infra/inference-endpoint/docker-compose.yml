@@ -1,8 +1,6 @@
 services:
   inference-endpoint:
     image: ghcr.io/marcow03/gizstrom/pipelines:latest
-    # for testing, we can build the image locally
-    # build: ../../src/pipelines
     ports:
       - "8001:8001"
     environment:
