@@ -217,3 +217,5 @@ data/
 *.tfstate
 *.tfstate.*
 .terraform.*
+
+terraform/apply.sh
