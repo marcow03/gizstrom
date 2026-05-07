@@ -1,5 +1,6 @@
 import os
 
+import pendulum
 from airflow import DAG
 from airflow.providers.docker.operators.docker import DockerOperator
 
@@ -7,6 +8,7 @@ with DAG(
     "feature_and_training",
     schedule="@daily",
     catchup=False,
+    start_date=pendulum.datetime(2026, 1, 1, tz="Europe/Zurich"),
     is_paused_upon_creation=False,
     tags=["gizstrom", "training", "feature"],
 ) as dag:

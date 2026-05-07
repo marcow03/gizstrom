@@ -2,8 +2,14 @@ $(async () => {
     // Fetch data from both endpoints
     try {
         const [histRes, foreRes] = await Promise.allSettled([
-            fetch('/power-generation/historical/').then(r => r.json()),
-            fetch('/power-generation/forecast/').then(r => r.json())
+            fetch('/power-generation/historical/').then(r => {
+                if (!r.ok) throw new Error(`Historical data fetch failed with status ${r.status}`);
+                return r.json();
+            }),
+            fetch('/power-generation/forecast/').then(r => {
+                if (!r.ok) throw new Error(`Forecast data fetch failed with status ${r.status}`);
+                return r.json();
+            })
         ]);
 
         // Check results and handle failures
@@ -13,12 +19,12 @@ $(async () => {
         // Format the data for Chart.js
         // Mapping time to date and the specific kWh keys to a unified format
         // Only display the last 14 days of historical data
-        const measurementData = histRes.map(d => ({
+        const measurementData = historicalData.map(d => ({
             date: d.time.split('T')[0],
             kwh: d.power_generation_kwh
         })).slice(-14);
 
-        const predictedData = foreRes.map(d => ({
+        const predictedData = forecastData.map(d => ({
             date: d.time.split('T')[0],
             kwh: d.pred_power_generation_kwh
         }));

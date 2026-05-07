@@ -40,43 +40,24 @@ class InferencePipeline(BasePipeline):
 
         @app.get("/predict")
         def predict():
-            timestamps = [
-                pd.Timestamp(dt, unit="ms", tz="UTC").round("ms")
-                for dt in pd.date_range(
-                    start=datetime.now(),
-                    end=datetime.now() + timedelta(days=7),
-                    periods=7,
+            features = self._fetch_features()
+            if features is None or features.empty:
+                raise HTTPException(
+                    status_code=503, detail="No features available for inference"
                 )
-            ]
-
-            features = (
-                self._fs.get_historical_features(
-                    features=self._feature_refs,
-                    entity_df=pd.DataFrame(
-                        {
-                            "location": ["walenstadt-dummy"] * len(timestamps),
-                            "event_timestamp": timestamps,
-                        }
-                    ),
-                )
-                .to_df()
-                .dropna()
-            )
 
             if (
-                datetime.now() - self._last_model_load_time
-            ).total_seconds() > MODEL_RELOAD_INTERVAL_SECONDS:
-                self.log.info("Reloading champion model due to staleness")
+                self._model is None
+                or (datetime.now() - self._last_model_load_time).total_seconds()
+                > MODEL_RELOAD_INTERVAL_SECONDS
+            ):
+                self.log.info("Reloading champion model")
                 self._model = self._load_champion_model()
+                self._last_model_load_time = datetime.now()
 
             if self._model is None:
                 raise HTTPException(
                     status_code=503, detail="No model available for inference"
-                )
-
-            if features.empty:
-                raise HTTPException(
-                    status_code=503, detail="No features available for inference"
                 )
 
             X_pred = features[
@@ -110,4 +91,33 @@ class InferencePipeline(BasePipeline):
             return model
         except Exception as e:
             self.log.error(f"Failed to load champion model: {e}")
+            return None
+
+    def _fetch_features(self) -> pd.DataFrame | None:
+        try:
+            timestamps = [
+                pd.Timestamp(dt, unit="ms", tz="UTC").round("ms")
+                for dt in pd.date_range(
+                    start=datetime.now(),
+                    end=datetime.now() + timedelta(days=7),
+                    periods=7,
+                )
+            ]
+            # Fetch features from the feature store
+            features = (
+                self._fs.get_historical_features(
+                    features=self._feature_refs,
+                    entity_df=pd.DataFrame(
+                        {
+                            "location": ["walenstadt-dummy"] * len(timestamps),
+                            "event_timestamp": timestamps,
+                        }
+                    ),
+                )
+                .to_df()
+                .dropna()
+            )
+            return features
+        except Exception as e:
+            self.log.error(f"Failed to fetch features: {e}")
             return None
