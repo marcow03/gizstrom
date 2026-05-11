@@ -1,9 +1,8 @@
 # gizstrom
 
-Solar panels are a great way to generate renewable energy. We recently installed a solar panel system on our roof. While the manufacturers provides an app to monitor energy generation, it unfortunatly lacks forecasting capabilities. This project aims to bridge that gap by creating a machine learning pipeline that predicts future energy generation based on weather forecasts and historical data. The solution includes data processing, model training, and a simple web app for visualization.
+Solar panels are a great way to generate renewable energy. We recently installed a solar panel system on our roof. While the manufacturer provides a web app to monitor energy generation, it unfortunatly lacks forecasting capabilities. This project aims to bridge that gap by creating a machine learning pipeline that predicts future energy generation based on weather forecasts and historical data. The solution includes data processing, model training, and a simple web app for visualization.
 
 <img src="assets/solar-installation.jpg" alt="Solar Installation" width="300px">
-
 
 ## System Architecture
 
@@ -15,8 +14,8 @@ Solar panels are a great way to generate renewable energy. We recently installed
 
 ## Data Sources
 
-- **Open Meteo Weather API**: Provides both historical and forecast weather data, including features like temperature, rainfall, and radiation. There is historical data available as well as a forecast for next few days. This project uses the historical data for training the model and the forecast data for making predictions.
-- **Fronius Solar Web**: Supplies daily power generation statistics from the solar installation. This data serves as the labels for the machine learning model. As this data is only available for Users with a Fronius solar installation, an example export of the data is included (`example-data/fronius_export.csv`). _This data has to be manually uploaded via the App._
+- **[Open Meteo Weather API](https://open-meteo.com/)**: Provides both historical and forecast weather data, including features like temperature, rainfall, and radiation. There is historical data available as well as a forecast for next few days. This project uses the historical data for training the model and the forecast data for making predictions.
+- **[Fronius Solar Web](https://www.solarweb.com/)**: Supplies daily power generation statistics from the solar installation. This data serves as the labels for the machine learning model. As this data is only available for Users with a Fronius solar installation, an example export of the data is included (`example-data/fronius_export.csv`). _This data has to be manually uploaded via the App._
 
 ## Project Structure
 
@@ -50,6 +49,7 @@ Solar panels are a great way to generate renewable energy. We recently installed
 
     ```sh
     terraform init
+
     terraform apply \
         -auto-approve \
         -var "project=<gcp-project>" \
@@ -78,7 +78,7 @@ Solar panels are a great way to generate renewable energy. We recently installed
 
 ## Development Notes
 
-- Dependency management is handled using `uv`, Versions were pinned where it made sense.
+- Dependency management is handled using [uv](https://docs.astral.sh/uv/); Versions were pinned where it made sense.
 - Pre-commit hooks are managed using [Prek](https://prek.j178.dev/) and configured in `prek.toml` to enforce code quality and formatting standards.
 - A development container is available for debugging and development. It automatically starts all services in `infra/` and connects to the production network.
 - All Docker images are built automatically using Github Actions (for `linux/amd64` and `linux/arm64` platforms) and pushed to the [Github Container Registry](https://github.com/marcow03?tab=packages&repo_name=gizstrom). To quickly build images locally and tag them, use the provided script `build_images_debug.sh`.

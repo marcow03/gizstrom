@@ -6,7 +6,6 @@ hooks = [
   { id = "check-added-large-files" },
   { id = "trailing-whitespace" },
   { id = "check-toml" }
-
 ]
 
 [[repos]]
