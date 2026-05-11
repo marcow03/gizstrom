@@ -1,33 +1,22 @@
 # gizstrom
 
-<table>
-    <tr>
-      <td style="vertical-align: top; width: 50%;">
-        Solar panels are a great way to generate renewable energy. We recently installed a solar panel system on our roof. While the manufacturers provides an app to monitor energy generation, it unfortunatly lacks forecasting capabilities. This project aims to bridge that gap by creating a machine learning pipeline that predicts future energy generation based on weather forecasts and historical data. The solution includes data processing, model training, and a simple web app for visualization.
-      </td>
-      <td style="width: 30%;">
-        <img src="assets/solar-installation.jpg" alt="Solar Panel" width="100%">
-      </td>
-    </tr>
-  </table>
+Solar panels are a great way to generate renewable energy. We recently installed a solar panel system on our roof. While the manufacturers provides an app to monitor energy generation, it unfortunatly lacks forecasting capabilities. This project aims to bridge that gap by creating a machine learning pipeline that predicts future energy generation based on weather forecasts and historical data. The solution includes data processing, model training, and a simple web app for visualization.
+
+<img src="assets/solar-installation.jpg" alt="Solar Installation" width="300px">
+
+
+## System Architecture
+
+<img src="assets/architecture-v2.drawio.svg" alt="System Architecture" width="100%">
+
+## FTI-Pipeline
+
+<img src="assets/fti.drawio.svg" alt="Feature and Training Infrastructure" width="100%">
 
 ## Data Sources
 
 - **Open Meteo Weather API**: Provides both historical and forecast weather data, including features like temperature, rainfall, and radiation. There is historical data available as well as a forecast for next few days. This project uses the historical data for training the model and the forecast data for making predictions.
-- **Fronius Solar Web**: Supplies daily power generation statistics from the solar installation. This data serves as the labels for the machine learning model. As this data is only available for Users with a Fronius solar installation, an example export of the data is included (`example_data/fronius_export.csv`). _This data has to be manually uploaded via the App._
-
-## System Architecture and FTI-Pipeline
-
-<table >
-    <tr>
-        <td style="padding: 30px;">
-            <img src="assets/architecture-v2.drawio.svg" alt="System Architecture" width="100%">
-        </td>
-        <td style="padding: 30px;">
-            <img src="assets/fti.drawio.svg" alt="Feature and Training Infrastructure" width="100%">
-        </td>
-    </tr>
-</table>
+- **Fronius Solar Web**: Supplies daily power generation statistics from the solar installation. This data serves as the labels for the machine learning model. As this data is only available for Users with a Fronius solar installation, an example export of the data is included (`example-data/fronius_export.csv`). _This data has to be manually uploaded via the App._
 
 ## Project Structure
 
@@ -51,7 +40,7 @@
     - **Feast UI**: [http://localhost:8088](http://localhost:8088)
     - **Rustfs (S3 storage)**: [http://localhost:9001](http://localhost:9001)
     - **Inference Endpoint**: [http://localhost:8001/predict](http://localhost:8001/predict)
-4. To set the Pipeline in motion, upload the `example_data/fronius_export.csv` file via the App. This will trigger the feature and model training pipeline via Airflow. (Generally the pipeline will run every day at midnight)
+4. To set the Pipeline in motion, upload the `example-data/fronius_export.csv` file via the App. This will trigger the feature and model training pipeline via Airflow. (Generally the pipeline will run every day at midnight)
 
 ## Setup (Google Cloud)
 
@@ -70,13 +59,15 @@
     ```
 
 4. The URLs for the deployed services will be outputted after the deployment is complete.
-5. To set the Pipeline in motion, upload the `example_data/fronius_export.csv` file via the App. This will trigger the feature and model training pipeline via Airflow. (Generally the pipeline will run every day at midnight)
+5. To set the Pipeline in motion, upload the `example-data/fronius_export.csv` file via the App. This will trigger the feature and model training pipeline via Airflow. (Generally the pipeline will run every day at midnight)
+
+> **Note**: The deployed infrastructure is intended for demonstration purposes. Services are not secured and are vulnerable to unauthorized access.
 
 ## Available REST Endpoints
 
 - **App**
   - `GET /`: Serves the static web interface.
-  - `POST /upload/`: Uploads CSV data to S3, validates columns, and triggers the Airflow pipeline.
+  - `POST /upload/`: Uploads CSV power generation data exported from Fronius to S3, validates columns, and triggers the Airflow pipeline.
   - `GET /weather/historical/`: Retrieves historical weather data.
   - `GET /weather/forecast/`: Retrieves weather forecast data.
   - `GET /power-generation/historical/`: Retrieves historical power generation records from S3.
@@ -87,7 +78,7 @@
 
 ## Development Notes
 
-- Dependency management is handled using `uv`.
-- Pre-commit hooks are configured in `prek.toml` to enforce code quality and formatting standards.
+- Dependency management is handled using `uv`, Versions were pinned where it made sense.
+- Pre-commit hooks are managed using [Prek](https://prek.j178.dev/) and configured in `prek.toml` to enforce code quality and formatting standards.
 - A development container is available for debugging and development. It automatically starts all services in `infra/` and connects to the production network.
-- All Docker images are built automatically using Github Actions (for `linux/amd64` and `linux/arm64` platforms) and pushed to the Github Container Registry. To quickly build images locally and tag them, use the provided script `build_images_debug.sh`.
+- All Docker images are built automatically using Github Actions (for `linux/amd64` and `linux/arm64` platforms) and pushed to the [Github Container Registry](https://github.com/marcow03?tab=packages&repo_name=gizstrom). To quickly build images locally and tag them, use the provided script `build_images_debug.sh`.
