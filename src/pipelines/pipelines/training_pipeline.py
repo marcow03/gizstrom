@@ -24,8 +24,8 @@ MODEL = RandomForestRegressor
 MODEL_NAME = "random_forest_regressor"
 PARAM_GRID = ParameterGrid(
     {
-        "n_estimators": [100, 200, 300, 400],
-        "max_depth": [None, 4, 8, 16, 32],
+        "n_estimators": [100, 200, 300],
+        "max_depth": [8, 16, 32],
         "min_samples_split": [2, 5, 10],
         "min_samples_leaf": [1, 2, 4],
     }
@@ -43,7 +43,7 @@ class TrainingPipeline(BasePipeline):
         self.log.info("Starting training pipeline")
 
         features = self._get_train_features(N_TRAIN_SAMPLES)
-        if features.empty:
+        if features is None or features.empty:
             self.log.error("No training data available. Aborting training.")
             return
         if len(features) < N_TRAIN_SAMPLES:
@@ -54,44 +54,48 @@ class TrainingPipeline(BasePipeline):
 
         self._train_model(features)
 
-    def _get_train_features(self, n_samples: int) -> pd.DataFrame:
-        fs = get_feast_feature_store()
-        feature_refs = [
-            "weather_historical:temperature_2m_mean",
-            "weather_historical:temperature_2m_max",
-            "weather_historical:temperature_2m_min",
-            "weather_historical:daylight_duration",
-            "weather_historical:sunshine_duration",
-            "weather_historical:rain_sum",
-            "weather_historical:snowfall_sum",
-            "weather_historical:shortwave_radiation_sum",
-            "power_generation:power_generation_kwh",
-        ]
+    def _get_train_features(self, n_samples: int) -> pd.DataFrame | None:
+        try:
+            fs = get_feast_feature_store()
+            feature_refs = [
+                "weather_historical:temperature_2m_mean",
+                "weather_historical:temperature_2m_max",
+                "weather_historical:temperature_2m_min",
+                "weather_historical:daylight_duration",
+                "weather_historical:sunshine_duration",
+                "weather_historical:rain_sum",
+                "weather_historical:snowfall_sum",
+                "weather_historical:shortwave_radiation_sum",
+                "power_generation:power_generation_kwh",
+            ]
 
-        timestamps = [
-            pd.Timestamp(dt, unit="ms", tz="UTC").round("ms")
-            for dt in pd.date_range(
-                start=datetime.now() - timedelta(days=n_samples),
-                end=datetime.now(),
-                periods=n_samples,
+            timestamps = [
+                pd.Timestamp(dt, unit="ms", tz="UTC").round("ms")
+                for dt in pd.date_range(
+                    start=datetime.now() - timedelta(days=n_samples),
+                    end=datetime.now(),
+                    periods=n_samples,
+                )
+            ]
+
+            features = (
+                fs.get_historical_features(
+                    features=feature_refs,
+                    entity_df=pd.DataFrame(
+                        {
+                            "location": ["walenstadt-dummy"] * len(timestamps),
+                            "event_timestamp": timestamps,
+                        }
+                    ),
+                )
+                .to_df()
+                .dropna()
             )
-        ]
 
-        features = (
-            fs.get_historical_features(
-                features=feature_refs,
-                entity_df=pd.DataFrame(
-                    {
-                        "location": ["walenstadt-dummy"] * len(timestamps),
-                        "event_timestamp": timestamps,
-                    }
-                ),
-            )
-            .to_df()
-            .dropna()
-        )
-
-        return features
+            return features
+        except Exception as e:
+            self.log.error(f"Error fetching training features: {e}")
+            return None
 
     def _train_model(self, features: pd.DataFrame):
         X = features.drop(
@@ -124,14 +128,16 @@ class TrainingPipeline(BasePipeline):
                     model.fit(X_train, y_train)
 
                     val_pred = model.predict(X_val)
+
                     val_mse = mean_squared_error(y_val, val_pred)
-                    val_mae = mean_absolute_error(y_val, val_pred)
-                    val_r2 = r2_score(y_val, val_pred)
+                    metrics = {
+                        "val_mse": val_mse,
+                        "val_mae": mean_absolute_error(y_val, val_pred),
+                        "val_r2": r2_score(y_val, val_pred),
+                    }
 
                     mlflow.log_params(params)
-                    mlflow.log_metric("val_mse", val_mse)
-                    mlflow.log_metric("val_mae", val_mae)
-                    mlflow.log_metric("val_r2", val_r2)
+                    mlflow.log_metrics(metrics)
 
                     if val_mse < best_val_mse:
                         best_val_mse = val_mse
